@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}{% endblock %} · {{ nombre_negocio }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="{% block clase_body %}{% endblock %}">
+  <header class="barra">
+    <div class="barra__interior">
+      <a class="barra__marca" href="{{ url_for('acceso.raiz') }}">{{ nombre_negocio }}</a>
+      {% if usuario and not usuario.debe_cambiar_clave %}
+        <nav class="barra__nav" aria-label="Navegación principal">
+          {% if usuario.es_gerente %}
+            <a href="{{ url_for('panel.inicio') }}" {% if request.blueprint == 'panel' %}aria-current="page"{% endif %}>Tablero</a>
+            <a href="{{ url_for('clientes.directorio') }}" {% if request.blueprint == 'clientes' %}aria-current="page"{% endif %}>Clientes</a>
+            <a href="{{ url_for('catalogos.salones') }}" {% if request.blueprint == 'catalogos' %}aria-current="page"{% endif %}>Catálogos</a>
+          {% else %}
+            <a href="{{ url_for('portal.mis_eventos') }}" aria-current="page">Mis eventos</a>
+          {% endif %}
+          <a href="{{ url_for('acceso.cambiar_clave') }}" {% if request.endpoint == 'acceso.cambiar_clave' %}aria-current="page"{% endif %}>Mi clave</a>
+        </nav>
+      {% endif %}
+      {% if usuario %}
+        <form class="barra__salir" method="post" action="{{ url_for('acceso.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <span class="barra__usuario">{{ usuario.nombre }}</span>
+          <button type="submit" class="boton boton--fantasma">Cerrar sesión</button>
+        </form>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="contenido" id="contenido">
+    {% include "_mensajes.html" %}
+    {% block contenido %}{% endblock %}
+  </main>
+</body>
+</html>

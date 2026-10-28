@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Paquetes{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Catálogos</h1>
+  {% with activa='paquetes' %}{% include "catalogos/_pestanas.html" %}{% endwith %}
+</div>
+
+<div class="acciones acciones--fin">
+  <a class="boton boton--primario" href="{{ url_for('catalogos.nuevo_paquete') }}">Armar paquete</a>
+</div>
+
+{% for p in paquetes %}
+  <article class="panel paquete" aria-labelledby="paq-{{ p.id_paquete }}">
+    <header class="paquete__cabecera">
+      <div>
+        <h2 id="paq-{{ p.id_paquete }}">{{ p.nombre }}</h2>
+        <p class="texto-suave">
+          {% if p.es_personalizado %}<span class="etiqueta etiqueta--ambar">Personalizado</span> para {{ p.nombre_cliente }}
+          {% else %}<span class="etiqueta etiqueta--gris">Estándar</span>{% endif %}
+        </p>
+      </div>
+      <p class="paquete__precio">${{ '{:,.2f}'.format(p.precio_persona) }} <span>por persona</span></p>
+    </header>
+    <dl class="menu">
+      {% for categoria, lista in p.menu().items() %}
+        <div><dt>{{ lista[0].categoria_legible }}</dt><dd>{{ lista|map(attribute='nombre')|join(', ') }}</dd></div>
+      {% endfor %}
+    </dl>
+    <div class="acciones">
+      <a class="boton boton--pequeno" href="{{ url_for('catalogos.editar_paquete', id_paquete=p.id_paquete) }}">Editar</a>
+      <form method="post" action="{{ url_for('catalogos.eliminar_paquete', id_paquete=p.id_paquete) }}"
+            data-confirmar="¿Eliminar el paquete «{{ p.nombre }}»?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="boton boton--pequeno boton--peligro">Eliminar</button>
+      </form>
+    </div>
+  </article>
+{% else %}
+  <p class="texto-suave">Aún no hay paquetes. Arma el primero para poder cotizar.</p>
+{% endfor %}
+{% endblock %}

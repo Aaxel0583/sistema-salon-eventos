@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Cambiar clave{% endblock %}
+{% block clase_body %}pagina-acceso{% endblock %}
+{% block contenido %}
+<section class="tarjeta-acceso" aria-labelledby="titulo-clave">
+  <h1 id="titulo-clave">{{ 'Crea tu clave personal' if obligatorio else 'Cambiar mi clave' }}</h1>
+  {% if obligatorio %}
+    <div class="aviso aviso--aviso">Estás usando la clave que te entregaron. Antes de continuar, cámbiala por una que solo tú conozcas.</div>
+  {% endif %}
+
+  <form method="post" class="formulario" novalidate data-validar-clave>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label for="current-password">Clave actual</label>
+    <input type="password" id="current-password" name="clave_actual" autocomplete="current-password" required>
+
+    <label for="new-password">Clave nueva</label>
+    <div class="campo-clave">
+      <input type="password" id="new-password" name="clave_nueva" autocomplete="new-password"
+             minlength="8" required aria-describedby="reglas-clave">
+      <button type="button" class="boton boton--texto" data-mostrar-clave="new-password"
+              aria-controls="new-password" aria-pressed="false">Mostrar</button>
+    </div>
+
+    <ul class="reglas" id="reglas-clave" aria-live="polite">
+      <li data-regla="largo">Al menos 8 caracteres</li>
+      <li data-regla="letra">Al menos una letra</li>
+      <li data-regla="numero">Al menos un número</li>
+    </ul>
+
+    <label for="confirmacion">Escribe de nuevo la clave nueva</label>
+    <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" required>
+
+    <button type="submit" class="boton boton--primario boton--ancho">Guardar clave</button>
+  </form>
+</section>
+{% endblock %}

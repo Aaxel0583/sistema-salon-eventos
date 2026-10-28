@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block titulo %}Acceso{% endblock %}
+{% block clase_body %}pagina-acceso{% endblock %}
+{% block contenido %}
+<section class="tarjeta-acceso" aria-labelledby="titulo-acceso">
+  <h1 id="titulo-acceso">Entra a tu cuenta</h1>
+  <p class="texto-suave">Usa el correo o el celular que diste al reservar.</p>
+
+  <form method="post" class="formulario" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label for="identificador">Correo o celular</label>
+    <input type="text" id="identificador" name="identificador" value="{{ identificador }}"
+           autocomplete="username" autocapitalize="none" autocorrect="off"
+           spellcheck="false" enterkeyhint="next" required autofocus>
+
+    <label for="current-password">Clave de acceso</label>
+    <div class="campo-clave">
+      <input type="password" id="current-password" name="clave"
+             autocomplete="current-password" enterkeyhint="done" required>
+      <button type="button" class="boton boton--texto" data-mostrar-clave="current-password"
+              aria-controls="current-password" aria-pressed="false">Mostrar</button>
+    </div>
+
+    <button type="submit" class="boton boton--primario boton--ancho">Entrar</button>
+  </form>
+
+  <p class="nota">¿Olvidaste tu clave? El gerente del salón puede generarte una nueva.</p>
+</section>
+{% endblock %}

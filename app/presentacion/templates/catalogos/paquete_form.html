@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titulo %}{{ 'Editar paquete' if paquete else 'Armar paquete' }}{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>{{ 'Editar ' ~ paquete.nombre if paquete else 'Armar paquete' }}</h1>
+  <a href="{{ url_for('catalogos.paquetes') }}">Volver a paquetes</a>
+</div>
+
+<form method="post" class="formulario panel" novalidate data-paquete>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="formulario-linea">
+    <div class="campo campo--ancho">
+      <label for="nombre">Nombre del paquete</label>
+      <input type="text" id="nombre" name="nombre" value="{{ datos.nombre or '' }}" maxlength="80" required>
+    </div>
+    <div class="campo">
+      <label for="precio_persona">Precio por persona (MXN)</label>
+      <input type="number" id="precio_persona" name="precio_persona" value="{{ datos.precio_persona or '' }}"
+             min="0" step="0.01" inputmode="decimal" required>
+    </div>
+  </div>
+
+  <fieldset class="grupo-opciones">
+    <legend>Tipo de paquete</legend>
+    {% for codigo, texto in tipos.items() %}
+      <label class="casilla">
+        <input type="radio" name="tipo" value="{{ codigo }}" data-tipo-paquete
+               {% if (datos.tipo or 'ESTANDAR') == codigo %}checked{% endif %}>
+        {{ texto }}
+      </label>
+    {% endfor %}
+  </fieldset>
+
+  <div class="campo" data-campo-cliente>
+    <label for="id_cliente">Cliente del paquete personalizado <span class="obligatorio">obligatorio</span></label>
+    <select id="id_cliente" name="id_cliente">
+      <option value="">Elige un cliente</option>
+      {% for c in clientes %}
+        <option value="{{ c.id_usuario }}" {% if (datos.id_cliente|string) == (c.id_usuario|string) %}selected{% endif %}>{{ c.nombre }} — {{ c.contacto }}</option>
+      {% endfor %}
+    </select>
+    {% if not clientes %}<p class="nota">Primero registra al cliente en la sección Clientes.</p>{% endif %}
+  </div>
+
+  <h2>Platillos del menú</h2>
+  <p class="texto-suave">Elige al menos uno.</p>
+  <div class="rejilla-platillos">
+    {% for categoria, lista in grupos.items() %}
+      <fieldset class="grupo-opciones">
+        <legend>{{ lista[0].categoria_legible }}</legend>
+        {% for pl in lista %}
+          <label class="casilla">
+            <input type="checkbox" name="platillos" value="{{ pl.id_platillo }}" {% if pl.id_platillo in seleccion %}checked{% endif %}>
+            {{ pl.nombre }}
+          </label>
+        {% endfor %}
+      </fieldset>
+    {% endfor %}
+  </div>
+
+  <div class="acciones">
+    <button type="submit" class="boton boton--primario">{{ 'Guardar cambios' if paquete else 'Crear paquete' }}</button>
+    <a class="boton" href="{{ url_for('catalogos.paquetes') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

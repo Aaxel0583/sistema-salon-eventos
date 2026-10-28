@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}Tablero{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Hola, {{ usuario.nombre.split(' ')[0] }}</h1>
+  <p class="texto-suave">Resumen de la operación del salón.</p>
+</div>
+
+<section class="indicadores" aria-label="Indicadores">
+  <a class="indicador" href="{{ url_for('clientes.directorio') }}">
+    <span class="indicador__cifra">{{ clientes }}</span>
+    <span class="indicador__texto">clientes registrados</span>
+  </a>
+  <a class="indicador" href="{{ url_for('catalogos.paquetes') }}">
+    <span class="indicador__cifra">{{ paquetes }}</span>
+    <span class="indicador__texto">paquetes de banquete</span>
+  </a>
+  <a class="indicador" href="{{ url_for('catalogos.salones') }}">
+    <span class="indicador__cifra">{{ salones|length }}</span>
+    <span class="indicador__texto">salones en operación</span>
+  </a>
+</section>
+
+<div class="dos-columnas">
+  <section class="panel" aria-labelledby="t-salones">
+    <h2 id="t-salones">Salones</h2>
+    <ul class="lista-simple">
+      {% for s in salones %}
+        <li>
+          <strong>{{ s.nombre }}</strong>
+          <span class="texto-suave">{{ s.capacidad_maxima }} personas · ${{ '{:,.2f}'.format(s.costo_renta) }}</span>
+          {% if not s.esta_disponible %}<span class="etiqueta etiqueta--gris">No disponible</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel" aria-labelledby="t-actividad">
+    <h2 id="t-actividad">Actividad reciente</h2>
+    {% if actividad %}
+      <ul class="lista-simple lista-simple--compacta">
+        {% for a in actividad %}
+          <li><span>{{ a.accion|replace('_', ' ')|capitalize }}</span>
+              <span class="texto-suave">{{ a.usuario or 'Sistema' }} · {{ a.fecha.strftime('%d/%m/%Y %H:%M') }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="texto-suave">Todavía no hay movimientos registrados.</p>
+    {% endif %}
+  </section>
+</div>
+
+<p class="nota">Los eventos, la ocupación por salón y los eventos por cerrar aparecerán aquí al habilitar el módulo de reservaciones.</p>
+{% endblock %}

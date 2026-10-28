@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}Salones{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Catálogos</h1>
+  {% with activa='salones' %}{% include "catalogos/_pestanas.html" %}{% endwith %}
+</div>
+
+<p class="texto-suave">El salón opera con tres espacios. Puedes editar sus datos, pero no agregar uno nuevo.</p>
+
+<div class="rejilla-salones">
+{% for s in salones %}
+  <article class="panel salon {% if not s.esta_disponible %}salon--inactivo{% endif %}" aria-labelledby="salon-{{ s.id_salon }}">
+    {% if editando == s.id_salon %}
+      <form method="post" action="{{ url_for('catalogos.editar_salon', id_salon=s.id_salon) }}" class="formulario" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h2 id="salon-{{ s.id_salon }}">Editar {{ s.nombre }}</h2>
+
+        <label for="nombre-{{ s.id_salon }}">Nombre</label>
+        <input type="text" id="nombre-{{ s.id_salon }}" name="nombre" value="{{ s.nombre }}" maxlength="80" required>
+
+        <label for="desc-{{ s.id_salon }}">Descripción</label>
+        <textarea id="desc-{{ s.id_salon }}" name="descripcion" maxlength="255" rows="2">{{ s.descripcion or '' }}</textarea>
+
+        <label for="cap-{{ s.id_salon }}">Capacidad máxima (personas)</label>
+        <input type="number" id="cap-{{ s.id_salon }}" name="capacidad_maxima" value="{{ s.capacidad_maxima }}"
+               min="{{ s.mayor_aforo_agendado or 1 }}" inputmode="numeric" required
+               {% if s.mayor_aforo_agendado %}aria-describedby="min-{{ s.id_salon }}"{% endif %}>
+        {% if s.mayor_aforo_agendado %}
+          <p class="nota" id="min-{{ s.id_salon }}">Hay un evento agendado con {{ s.mayor_aforo_agendado }} asistentes; la capacidad no puede ser menor.</p>
+        {% endif %}
+
+        <label for="costo-{{ s.id_salon }}">Costo de renta (MXN)</label>
+        <input type="number" id="costo-{{ s.id_salon }}" name="costo_renta" value="{{ s.costo_renta }}"
+               min="0" step="0.01" inputmode="decimal" required>
+
+        <label class="casilla">
+          <input type="checkbox" name="disponible" value="S" {% if s.esta_disponible %}checked{% endif %}>
+          Disponible para reservar
+        </label>
+
+        <div class="acciones">
+          <button type="submit" class="boton boton--primario">Guardar cambios</button>
+          <a class="boton" href="{{ url_for('catalogos.salones') }}">Cancelar</a>
+        </div>
+      </form>
+    {% else %}
+      <h2 id="salon-{{ s.id_salon }}">{{ s.nombre }}</h2>
+      {% if s.descripcion %}<p class="texto-suave">{{ s.descripcion }}</p>{% endif %}
+      <dl class="datos">
+        <div><dt>Capacidad</dt><dd>{{ s.capacidad_maxima }} personas</dd></div>
+        <div><dt>Renta</dt><dd>${{ '{:,.2f}'.format(s.costo_renta) }}</dd></div>
+        <div><dt>Estado</dt><dd>{% if s.esta_disponible %}Disponible{% else %}No disponible{% endif %}</dd></div>
+      </dl>
+      <a class="boton" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}">Editar</a>
+    {% endif %}
+  </article>
+{% endfor %}
+</div>
+{% endblock %}
