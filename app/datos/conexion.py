@@ -39,7 +39,10 @@ class BaseDatos:
             open=False,
             check=ConnectionPool.check_connection,   # RNF-11
             max_idle=300,                            # suelta conexiones ociosas
-            kwargs={"row_factory": dict_row, "connect_timeout": 10},
+            # Neon corre en UTC: sin esto CURRENT_DATE/CURRENT_TIMESTAMP (bitácora, BF004)
+            # quedan 6 h adelantados respecto al salón.
+            kwargs={"row_factory": dict_row, "connect_timeout": 10,
+                    "options": "-c timezone=America/Mexico_City"},
             name="pool-salon",
         )
         # wait=False: la app arranca aunque la base esté despertando.

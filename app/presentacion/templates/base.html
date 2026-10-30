@@ -8,34 +8,57 @@
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
 <body class="{% block clase_body %}{% endblock %}">
+  {# Barra superior · SDD Anexo C: fondo oscuro, nombre del negocio a la izquierda
+     (viene del .env, DA-06) y navegación del rol a la derecha. #}
+  {% block barra %}
   <header class="barra">
     <div class="barra__interior">
       <a class="barra__marca" href="{{ url_for('acceso.raiz') }}">{{ nombre_negocio }}</a>
-      {% if usuario and not usuario.debe_cambiar_clave %}
-        <nav class="barra__nav" aria-label="Navegación principal">
-          {% if usuario.es_gerente %}
-            <a href="{{ url_for('panel.inicio') }}" {% if request.blueprint == 'panel' %}aria-current="page"{% endif %}>Tablero</a>
-            <a href="{{ url_for('clientes.directorio') }}" {% if request.blueprint == 'clientes' %}aria-current="page"{% endif %}>Clientes</a>
-            <a href="{{ url_for('catalogos.salones') }}" {% if request.blueprint == 'catalogos' %}aria-current="page"{% endif %}>Catálogos</a>
-          {% else %}
-            <a href="{{ url_for('portal.mis_eventos') }}" aria-current="page">Mis eventos</a>
-          {% endif %}
-          <a href="{{ url_for('acceso.cambiar_clave') }}" {% if request.endpoint == 'acceso.cambiar_clave' %}aria-current="page"{% endif %}>Mi clave</a>
-        </nav>
-      {% endif %}
       {% if usuario %}
-        <form class="barra__salir" method="post" action="{{ url_for('acceso.logout') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <span class="barra__usuario">{{ usuario.nombre }}</span>
-          <button type="submit" class="boton boton--fantasma">Cerrar sesión</button>
-        </form>
+        <nav class="barra__nav" aria-label="Navegación principal">
+          {% if not usuario.debe_cambiar_clave %}
+            {% if usuario.es_gerente %}
+              {# Eventos (Sprint 2) y Reportes (Sprint 3) se agregan al construirse #}
+              <a href="{{ url_for('panel.inicio') }}" {% if request.blueprint == 'panel' %}aria-current="page"{% endif %}>Panel</a>
+              <a href="{{ url_for('catalogos.salones') }}" {% if request.blueprint == 'catalogos' %}aria-current="page"{% endif %}>Catálogos</a>
+              <a href="{{ url_for('clientes.directorio') }}" {% if request.blueprint == 'clientes' %}aria-current="page"{% endif %}>Clientes</a>
+            {% else %}
+              <a href="{{ url_for('portal.mis_eventos') }}" {% if request.blueprint == 'portal' %}aria-current="page"{% endif %}>Mis eventos</a>
+            {% endif %}
+          {% endif %}
+          <details class="menu-usuario">
+            <summary>{{ usuario.nombre }}</summary>
+            <div class="menu-usuario__lista">
+              {% if not usuario.debe_cambiar_clave %}
+                <a href="{{ url_for('acceso.cambiar_clave') }}">Cambiar mi clave</a>
+              {% endif %}
+              <form method="post" action="{{ url_for('acceso.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Cerrar sesión</button>
+              </form>
+            </div>
+          </details>
+        </nav>
       {% endif %}
     </div>
   </header>
+  {% endblock %}
 
   <main class="contenido" id="contenido">
-    {% include "_mensajes.html" %}
+    {% block mensajes %}{% include "_mensajes.html" %}{% endblock %}
     {% block contenido %}{% endblock %}
   </main>
+
+  {# Confirmación de acciones irreversibles (form[data-confirmar], ver app.js) #}
+  <dialog id="confirmacion" class="dialogo" aria-labelledby="confirmacion-titulo">
+    <form method="dialog">
+      <h2 id="confirmacion-titulo">¿Confirmas la acción?</h2>
+      <p data-mensaje></p>
+      <div class="acciones dialogo__acciones">
+        <button value="no" class="boton">Cancelar</button>
+        <button value="si" class="boton boton--primario">Continuar</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

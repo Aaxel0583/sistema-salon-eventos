@@ -1,53 +1,19 @@
 {% extends "base.html" %}
+{# IU-05 · Armado de un paquete · SDD Figura 31 #}
 {% block titulo %}{{ 'Editar paquete' if paquete else 'Armar paquete' }}{% endblock %}
 {% block contenido %}
 <div class="encabezado">
-  <h1>{{ 'Editar ' ~ paquete.nombre if paquete else 'Armar paquete' }}</h1>
-  <a href="{{ url_for('catalogos.paquetes') }}">Volver a paquetes</a>
+  <h1>Catálogos</h1>
+  {% with activa='paquetes' %}{% include "catalogos/_pestanas.html" %}{% endwith %}
 </div>
 
-<form method="post" class="formulario panel" novalidate data-paquete>
+<form method="post" class="armador" novalidate data-paquete>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-  <div class="formulario-linea">
-    <div class="campo campo--ancho">
-      <label for="nombre">Nombre del paquete</label>
-      <input type="text" id="nombre" name="nombre" value="{{ datos.nombre or '' }}" maxlength="80" required>
-    </div>
-    <div class="campo">
-      <label for="precio_persona">Precio por persona (MXN)</label>
-      <input type="number" id="precio_persona" name="precio_persona" value="{{ datos.precio_persona or '' }}"
-             min="0" step="0.01" inputmode="decimal" required>
-    </div>
-  </div>
-
-  <fieldset class="grupo-opciones">
-    <legend>Tipo de paquete</legend>
-    {% for codigo, texto in tipos.items() %}
-      <label class="casilla">
-        <input type="radio" name="tipo" value="{{ codigo }}" data-tipo-paquete
-               {% if (datos.tipo or 'ESTANDAR') == codigo %}checked{% endif %}>
-        {{ texto }}
-      </label>
-    {% endfor %}
-  </fieldset>
-
-  <div class="campo" data-campo-cliente>
-    <label for="id_cliente">Cliente del paquete personalizado <span class="obligatorio">obligatorio</span></label>
-    <select id="id_cliente" name="id_cliente">
-      <option value="">Elige un cliente</option>
-      {% for c in clientes %}
-        <option value="{{ c.id_usuario }}" {% if (datos.id_cliente|string) == (c.id_usuario|string) %}selected{% endif %}>{{ c.nombre }} — {{ c.contacto }}</option>
-      {% endfor %}
-    </select>
-    {% if not clientes %}<p class="nota">Primero registra al cliente en la sección Clientes.</p>{% endif %}
-  </div>
-
-  <h2>Platillos del menú</h2>
-  <p class="texto-suave">Elige al menos uno.</p>
-  <div class="rejilla-platillos">
+  <section class="panel panel--suave" aria-labelledby="t-platillos">
+    <h2 id="t-platillos">Platillos del paquete</h2>
     {% for categoria, lista in grupos.items() %}
-      <fieldset class="grupo-opciones">
+      <fieldset class="grupo-platillos">
         <legend>{{ lista[0].categoria_legible }}</legend>
         {% for pl in lista %}
           <label class="casilla">
@@ -56,12 +22,48 @@
           </label>
         {% endfor %}
       </fieldset>
+    {% else %}
+      <p class="texto-suave">No hay platillos en el catálogo. Agrégalos en la pestaña Platillos.</p>
     {% endfor %}
-  </div>
+  </section>
 
-  <div class="acciones">
-    <button type="submit" class="boton boton--primario">{{ 'Guardar cambios' if paquete else 'Crear paquete' }}</button>
-    <a class="boton" href="{{ url_for('catalogos.paquetes') }}">Cancelar</a>
-  </div>
+  <section class="panel panel--suave formulario" aria-labelledby="t-datos">
+    <h2 id="t-datos">{{ 'Editar ' ~ paquete.nombre if paquete else 'Datos del paquete' }}</h2>
+
+    <label for="nombre">Nombre</label>
+    <input type="text" id="nombre" name="nombre" value="{{ datos.nombre or '' }}" maxlength="80" required>
+
+    <fieldset class="segmentos">
+      <legend>Tipo</legend>
+      {% for codigo, texto in tipos.items() %}
+        <label class="segmento">
+          <input type="radio" name="tipo" value="{{ codigo }}" data-tipo-paquete
+                 {% if (datos.tipo or 'ESTANDAR') == codigo %}checked{% endif %}>
+          {{ texto }}
+        </label>
+      {% endfor %}
+    </fieldset>
+
+    <div class="fila-campos">
+      <div class="campo" data-campo-cliente>
+        <label for="id_cliente">Cliente dueño (obligatorio)</label>
+        <select id="id_cliente" name="id_cliente">
+          <option value="">Elige un cliente</option>
+          {% for c in clientes %}
+            <option value="{{ c.id_usuario }}" {% if (datos.id_cliente|string) == (c.id_usuario|string) %}selected{% endif %}>{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+        {% if not clientes %}<p class="nota">Primero registra al cliente en la sección Clientes.</p>{% endif %}
+      </div>
+      <div class="campo">
+        <label for="precio_persona">Precio por persona</label>
+        <input type="number" id="precio_persona" name="precio_persona" value="{{ datos.precio_persona or '' }}"
+               min="0" step="0.01" inputmode="decimal" placeholder="$" required>
+      </div>
+    </div>
+
+    <button type="submit" class="boton boton--primario boton--ancho">Guardar paquete</button>
+    <a class="enlace-cancelar" href="{{ url_for('catalogos.paquetes') }}">Cancelar</a>
+  </section>
 </form>
 {% endblock %}

@@ -19,29 +19,49 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Confirmación antes de acciones irreversibles (regenerar clave, eliminar).
+  // Escape o "Cancelar" cierran sin enviar; el foco inicia en "Cancelar".
+  const dialogo = document.getElementById("confirmacion");
   document.querySelectorAll("form[data-confirmar]").forEach((formulario) => {
     formulario.addEventListener("submit", (evento) => {
-      if (!window.confirm(formulario.dataset.confirmar)) evento.preventDefault();
+      evento.preventDefault();
+      dialogo.querySelector("[data-mensaje]").textContent = formulario.dataset.confirmar;
+      dialogo.returnValue = "";
+      dialogo.addEventListener("close", () => {
+        if (dialogo.returnValue === "si") formulario.submit();
+      }, { once: true });
+      dialogo.showModal();
     });
   });
 
-  // IU-02: las tres condiciones de la clave nueva se marcan al escribir.
+  // IU-02 (Figura 28): las tres condiciones de la clave nueva se marcan al escribir.
   const formClave = document.querySelector("[data-validar-clave]");
   if (formClave) {
+    const actual = formClave.querySelector("#current-password");
     const nueva = formClave.querySelector("#new-password");
+    const confirmacion = formClave.querySelector("#confirmacion");
     const reglas = {
-      largo: (v) => v.length >= 8,
-      letra: (v) => /\p{L}/u.test(v),
-      numero: (v) => /\d/.test(v),
+      largo: () => nueva.value.length >= 8,
+      distinta: () => nueva.value !== "" && nueva.value !== actual.value,
+      coincide: () => nueva.value !== "" && nueva.value === confirmacion.value,
     };
     const revisar = () => {
       for (const [nombre, cumple] of Object.entries(reglas)) {
-        formClave.querySelector(`[data-regla="${nombre}"]`)
-          ?.classList.toggle("cumple", cumple(nueva.value));
+        formClave.querySelector(`[data-regla="${nombre}"]`)?.classList.toggle("cumple", cumple());
       }
     };
-    nueva.addEventListener("input", revisar);
+    [actual, nueva, confirmacion].forEach((campo) => campo.addEventListener("input", revisar));
     revisar();
+  }
+
+  // Menú del usuario: se cierra al hacer clic fuera o con Escape.
+  const menu = document.querySelector(".menu-usuario");
+  if (menu) {
+    document.addEventListener("click", (evento) => {
+      if (menu.open && !menu.contains(evento.target)) menu.open = false;
+    });
+    document.addEventListener("keydown", (evento) => {
+      if (evento.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary").focus(); }
+    });
   }
 
   // IU-05: el campo de cliente solo aparece en paquetes personalizados (RN-12).

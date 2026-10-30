@@ -2,6 +2,8 @@
 Rutas de acceso · C-01 · IU-01, IU-02 · HU-001
 /login · /logout · /clave  (SDD Anexo A)
 """
+import re
+
 from flask import (Blueprint, current_app, flash, redirect, render_template,
                    request, url_for)
 
@@ -20,7 +22,8 @@ def _servicio() -> ServicioAcceso:
 
 def _destino_seguro(siguiente: str | None) -> str | None:
     """Evita redirecciones abiertas: solo rutas internas."""
-    if siguiente and siguiente.startswith("/") and not siguiente.startswith("//"):
+    # El navegador lee "\" como "/" e ignora tabuladores: "/\evil.com" sería otro sitio.
+    if siguiente and re.fullmatch(r"/(?![/\\])[^\s\\]*", siguiente):
         return siguiente
     return None
 
@@ -70,7 +73,7 @@ def cambiar_clave():
     usuario = usuario_actual()
     if request.method == "POST":
         try:
-            _servicio().cambiar_clave(
+            actualizado = _servicio().cambiar_clave(
                 usuario,
                 request.form.get("clave_actual", ""),
                 request.form.get("clave_nueva", ""),
@@ -79,6 +82,7 @@ def cambiar_clave():
         except ErrorDominio as error:
             flash(error.mensaje, "error")
         else:
+            iniciar_sesion(actualizado)     # esta sesión sigue; las demás quedan cerradas
             flash("Tu clave se actualizó.", "exito")
             return redirect(url_for(panel_de(usuario)))
 

@@ -27,11 +27,6 @@ class RepositorioSalones:
         self._cur.execute(self._SELECT + " ORDER BY s.id_salon")
         return [Salon.desde_fila(f) for f in self._cur.fetchall()]
 
-    def por_id(self, id_salon: int) -> Salon | None:
-        self._cur.execute(self._SELECT + " WHERE s.id_salon = %s", (id_salon,))
-        fila = self._cur.fetchone()
-        return Salon.desde_fila(fila) if fila else None
-
     def actualizar(self, id_salon: int, nombre: str, descripcion: str | None,
                    capacidad: int, costo_renta, disponible: str) -> bool:
         """Las reglas BF004 (capacidad) las impone el trigger, no este código."""
@@ -54,14 +49,6 @@ class RepositorioPlatillos:
             "SELECT id_platillo, nombre, categoria FROM platillo ORDER BY categoria, nombre"
         )
         return [Platillo.desde_fila(f) for f in self._cur.fetchall()]
-
-    def por_id(self, id_platillo: int) -> Platillo | None:
-        self._cur.execute(
-            "SELECT id_platillo, nombre, categoria FROM platillo WHERE id_platillo = %s",
-            (id_platillo,),
-        )
-        fila = self._cur.fetchone()
-        return Platillo.desde_fila(fila) if fila else None
 
     def insertar(self, nombre: str, categoria: str) -> int:
         self._cur.execute(

@@ -50,6 +50,7 @@ class Usuario:
     correo: str | None = None
     telefono: str | None = None
     clave_hash: str = field(default="", repr=False)   # nunca se imprime
+    num_eventos: int = 0                               # dato de apoyo para IU-04
 
     @classmethod
     def desde_fila(cls, fila: dict) -> "Usuario":
@@ -63,6 +64,7 @@ class Usuario:
             correo=fila.get("correo"),
             telefono=fila.get("telefono"),
             clave_hash=fila.get("clave_hash", ""),
+            num_eventos=fila.get("num_eventos", 0),
         )
 
     @property
@@ -82,13 +84,21 @@ class Usuario:
         return self.requiere_cambio_clave == "S"
 
     @property
-    def contacto(self) -> str:
-        """Dato de contacto para mostrar en listados."""
-        partes = [p for p in (self.correo, self.telefono) if p]
-        return " / ".join(partes)
+    def telefono_legible(self) -> str | None:
+        """'4921110011' -> '492 111 0011' (formato de IU-04)."""
+        t = self.telefono
+        if t and len(t) == 10:
+            return f"{t[:3]} {t[3:6]} {t[6:]}"
+        return t
 
-    def intentos_restantes(self, maximo: int) -> int:
-        return max(0, maximo - self.intentos_fallidos)
+    @property
+    def contacto(self) -> str:
+        return unir_contacto(self.correo, self.telefono)
+
+
+def unir_contacto(correo: str | None, telefono: str | None) -> str:
+    """Dato de contacto para mostrar en listados."""
+    return " / ".join(p for p in (correo, telefono) if p)
 
 
 # ---------------------------------------------------------------------
@@ -119,10 +129,6 @@ class Salon:
     @property
     def esta_disponible(self) -> bool:
         return self.disponible == "S"
-
-    def lugares_libres(self, asistentes: int) -> int:
-        """Lugares que quedan si se reciben `asistentes` personas (RF-23)."""
-        return self.capacidad_maxima - asistentes
 
 
 # ---------------------------------------------------------------------
@@ -183,9 +189,23 @@ class Paquete:
     def tipo_legible(self) -> str:
         return TIPOS_PAQUETE.get(self.tipo, self.tipo)
 
-    def costo_para(self, asistentes: int) -> Decimal:
-        """Parte del banquete en la cotización: precio × asistentes (RN-09)."""
-        return self.precio_persona * asistentes
-
     def menu(self) -> dict[str, list[Platillo]]:
         return agrupar_por_categoria(self.platillos)
+
+
+# ---------------------------------------------------------------------
+# Textos legibles de las acciones de bitácora (RF-41)
+# ---------------------------------------------------------------------
+ACCIONES_BITACORA = {
+    "INICIO_SESION": "Inicio de sesión",
+    "BLOQUEO_CUENTA": "Cuenta bloqueada",
+    "CAMBIO_CLAVE": "Cambio de clave",
+    "ALTA_CLIENTE": "Alta de cliente",
+    "REGENERAR_CLAVE": "Clave regenerada",
+    "EDITAR_SALON": "Edición de salón",
+    "ALTA_PAQUETE": "Alta de paquete",
+    "EDITAR_PAQUETE": "Edición de paquete",
+    "BAJA_PAQUETE": "Baja de paquete",
+    "ALTA_GERENTE_CONSOLA": "Alta de gerente (consola)",
+    "REGENERAR_CLAVE_CONSOLA": "Clave regenerada (consola)",
+}

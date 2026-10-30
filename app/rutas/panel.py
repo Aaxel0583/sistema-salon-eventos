@@ -10,7 +10,7 @@ from app.datos.conexion import BaseDatos
 from app.datos.repositorio_bitacora import RepositorioBitacora
 from app.datos.repositorio_catalogos import RepositorioPaquetes, RepositorioSalones
 from app.datos.repositorio_usuarios import RepositorioUsuarios
-from app.dominio.modelos import ROL_CLIENTE
+from app.dominio.modelos import ACCIONES_BITACORA, ROL_CLIENTE
 from app.seguridad.decoradores import solo_gerente
 
 bp = Blueprint("panel", __name__)
@@ -26,4 +26,4 @@ def inicio():
             "paquetes": RepositorioPaquetes(cur).contar(),
             "actividad": RepositorioBitacora(cur).recientes(10),
         }
-    return render_template("panel.html", **resumen)
+    return render_template("panel.html", acciones=ACCIONES_BITACORA, **resumen)

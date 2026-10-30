@@ -16,8 +16,8 @@ from psycopg import Cursor
 from app.datos.conexion import BaseDatos
 from app.datos.errores import ErrorNoEncontrado, ErrorValidacion
 from app.datos.repositorio_bitacora import RepositorioBitacora
-from app.datos.repositorio_usuarios import RepositorioUsuarios
-from app.dominio.modelos import ROL_CLIENTE, Usuario
+from app.datos.repositorio_usuarios import LIMITE_BUSQUEDA, RepositorioUsuarios
+from app.dominio.modelos import ROL_CLIENTE, Usuario, unir_contacto
 from app.seguridad import claves
 from app.servicios.validaciones import (normalizar_correo, normalizar_telefono,
                                         texto_obligatorio)
@@ -30,6 +30,7 @@ class ClienteRegistrado:
     nombre: str
     contacto: str
     clave_inicial: str
+    titulo: str = "Cliente registrado"
 
 
 class ServicioClientes:
@@ -57,8 +58,7 @@ class ServicioClientes:
             nombre, correo, telefono, ROL_CLIENTE, claves.cifrar(clave_inicial)
         )
         RepositorioBitacora(cur).registrar(id_gerente, "ALTA_CLIENTE", f"usuario:{id_cliente}")
-        contacto = " / ".join(x for x in (correo, telefono) if x)
-        return ClienteRegistrado(id_cliente, nombre, contacto, clave_inicial)
+        return ClienteRegistrado(id_cliente, nombre, unir_contacto(correo, telefono), clave_inicial)
 
     def regenerar_clave(self, id_gerente: int, id_cliente: int) -> ClienteRegistrado:
         """RF-10: nueva clave inicial, reactiva la cuenta y anula la anterior."""
@@ -70,8 +70,10 @@ class ServicioClientes:
             clave_inicial = claves.generar_clave_legible()
             usuarios.actualizar_clave(id_cliente, claves.cifrar(clave_inicial), requiere_cambio=True)
             RepositorioBitacora(cur).registrar(id_gerente, "REGENERAR_CLAVE", f"usuario:{id_cliente}")
-            return ClienteRegistrado(id_cliente, cliente.nombre, cliente.contacto, clave_inicial)
+            titulo = "Cuenta reactivada" if cliente.esta_bloqueado else "Clave nueva"
+            return ClienteRegistrado(id_cliente, cliente.nombre, cliente.contacto,
+                                     clave_inicial, titulo)
 
-    def buscar(self, texto: str = "") -> list[Usuario]:
+    def buscar(self, texto: str = "", limite: int | None = LIMITE_BUSQUEDA) -> list[Usuario]:
         with BaseDatos.transaccion() as cur:
-            return RepositorioUsuarios(cur).buscar_clientes(texto)
+            return RepositorioUsuarios(cur).buscar_clientes(texto, limite)

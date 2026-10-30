@@ -84,9 +84,9 @@ class ServicioAcceso:
         return False
 
     def cambiar_clave(self, usuario: Usuario, clave_actual: str,
-                      clave_nueva: str, confirmacion: str) -> None:
-        """CU-02 · RF-04 · IU-02."""
-        errores = claves.errores_clave_nueva(clave_nueva, confirmacion)
+                      clave_nueva: str, confirmacion: str) -> Usuario:
+        """CU-02 · RF-04 · IU-02. Devuelve al usuario con la clave nueva para renovar su sesión."""
+        errores = claves.errores_clave_nueva(clave_nueva, confirmacion, clave_actual)
         if errores:
             raise ErrorValidacion(" ".join(errores))
 
@@ -102,3 +102,4 @@ class ServicioAcceso:
                                       requiere_cambio=False)
             RepositorioBitacora(cur).registrar(usuario.id_usuario, "CAMBIO_CLAVE",
                                                f"usuario:{usuario.id_usuario}")
+            return usuarios.por_id(usuario.id_usuario)

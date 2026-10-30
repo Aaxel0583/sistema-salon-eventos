@@ -4,9 +4,11 @@ from decimal import Decimal
 import pytest
 
 from app.datos.errores import ErrorValidacion
-from app.dominio.modelos import Paquete, Platillo, agrupar_por_categoria
+from app.dominio.modelos import Platillo, agrupar_por_categoria
+from app.rutas.acceso import _destino_seguro
 from app.seguridad import claves
-from app.servicios.validaciones import (interpretar_identificador,
+from app.servicios.validaciones import (entero_positivo, importe,
+                                        interpretar_identificador,
                                         normalizar_correo, normalizar_telefono)
 
 
@@ -29,9 +31,19 @@ class TestClaves:
     def test_clave_inicial_tolerante_al_dictado(self, escrita):
         assert claves.normalizar_clave_inicial(escrita) == "K7PM-3QXR"
 
-    def test_condiciones_clave_nueva(self):
-        assert claves.errores_clave_nueva("Segura2026", "Segura2026") == []
-        assert len(claves.errores_clave_nueva("abc", "xyz")) == 3
+    def test_condiciones_clave_nueva(self):                       # IU-02, Figura 28
+        assert claves.errores_clave_nueva("Segura2026", "Segura2026", "ABCD-EFGH") == []
+        assert len(claves.errores_clave_nueva("abc", "xyz")) == 2           # corta y no coincide
+        assert claves.errores_clave_nueva("ABCD-EFGH", "ABCD-EFGH", "ABCD-EFGH") == [
+            "La clave nueva debe ser distinta de la actual."]
+
+    @pytest.mark.parametrize("destino, esperado", [
+        ("/clientes?q=ana", "/clientes?q=ana"),
+        ("//evil.com", None), ("/\\evil.com", None), ("/\t/evil.com", None),
+        ("https://evil.com", None), ("", None), (None, None),
+    ])
+    def test_destino_seguro_tras_login(self, destino, esperado):   # redirección abierta
+        assert _destino_seguro(destino) == esperado
 
 
 class TestValidaciones:
@@ -55,11 +67,22 @@ class TestValidaciones:
         assert interpretar_identificador("492-123-4567") == ("telefono", "4921234567")
 
 
-class TestDominio:
-    def test_costo_del_banquete(self):                            # RN-09 (parte del paquete)
-        paquete = Paquete(1, "Gala", Decimal("520.00"))
-        assert paquete.costo_para(100) == Decimal("52000.00")
+class TestImportes:
+    def test_importe_valido(self):
+        assert importe("$19,500.5", "Costo") == Decimal("19500.50")
 
+    @pytest.mark.parametrize("texto", ["NaN", "Infinity", "abc", "-1", "100000000"])
+    def test_importe_invalido_no_truena(self, texto):           # antes "NaN" daba error 500
+        with pytest.raises(ErrorValidacion):
+            importe(texto, "Precio")
+
+    @pytest.mark.parametrize("texto", ["0", "x", "3000000000"])
+    def test_entero_fuera_de_rango(self, texto):
+        with pytest.raises(ErrorValidacion):
+            entero_positivo(texto, "Capacidad")
+
+
+class TestDominio:
     def test_agrupacion_respeta_orden_de_categorias(self):        # RF-17
         platillos = [Platillo(1, "Flan", "POSTRE"), Platillo(2, "Sopa", "ENTRADA"),
                      Platillo(3, "Agua", "BEBIDA")]

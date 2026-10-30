@@ -9,6 +9,7 @@ ahí la clave en claro la expondría. Por eso no se usa redirect tras el alta.
 from flask import Blueprint, flash, render_template, request
 
 from app.datos.errores import ErrorDominio
+from app.datos.repositorio_usuarios import LIMITE_BUSQUEDA
 from app.seguridad.decoradores import solo_gerente
 from app.seguridad.sesion import usuario_actual
 from app.servicios.servicio_clientes import ServicioClientes
@@ -17,14 +18,16 @@ bp = Blueprint("clientes", __name__, url_prefix="/clientes")
 _servicio = ServicioClientes()
 
 
-def _directorio(clave_mostrada=None, formulario=None, estado=200):
+def _directorio(clave_mostrada=None, formulario=None, estado=200, mostrar_formulario=False):
     texto = request.args.get("q", "")
     return render_template(
         "clientes/directorio.html",
         clientes=_servicio.buscar(texto),
+        limite=LIMITE_BUSQUEDA,
         q=texto,
         clave_mostrada=clave_mostrada,
         formulario=formulario or {},
+        mostrar_formulario=mostrar_formulario,
     ), estado
 
 
@@ -32,6 +35,12 @@ def _directorio(clave_mostrada=None, formulario=None, estado=200):
 @solo_gerente
 def directorio():
     return _directorio()
+
+
+@bp.get("/nuevo")
+@solo_gerente
+def formulario_nuevo():
+    return _directorio(mostrar_formulario=True)
 
 
 @bp.post("/nuevo")
@@ -42,7 +51,7 @@ def nuevo():
         registrado = _servicio.registrar(usuario_actual().id_usuario, **formulario)
     except ErrorDominio as error:
         flash(error.mensaje, "error")
-        return _directorio(formulario=formulario, estado=422)
+        return _directorio(formulario=formulario, estado=422, mostrar_formulario=True)
     return _directorio(clave_mostrada=registrado)
 
 

@@ -14,7 +14,7 @@ from app.config import Configuracion
 from app.datos.conexion import BaseDatos
 from app.datos.errores import ErrorDominio
 from app.datos.repositorio_usuarios import RepositorioUsuarios
-from app.seguridad.sesion import cerrar_sesion, id_en_sesion
+from app.seguridad.sesion import cerrar_sesion, huella_vigente, id_en_sesion
 
 csrf = CSRFProtect()
 
@@ -75,7 +75,8 @@ def _registrar_ganchos(app: Flask, config: Configuracion) -> None:
 
         with BaseDatos.transaccion() as cur:
             usuario = RepositorioUsuarios(cur).por_id(id_usuario)
-        if usuario is None or usuario.esta_bloqueado:
+        # RF-10: si la clave cambió (regeneración o cambio desde otro equipo), la sesión ya no vale.
+        if usuario is None or usuario.esta_bloqueado or not huella_vigente(usuario):
             cerrar_sesion()
             return redirect(url_for("acceso.login"))
         g.usuario = usuario

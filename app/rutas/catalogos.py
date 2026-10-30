@@ -101,7 +101,7 @@ def _formulario_paquete(paquete=None, datos=None, seleccion=None, estado=200):
         datos=datos or {},
         seleccion=set(seleccion or []),
         grupos=agrupar_por_categoria(_platillos.listar()),
-        clientes=ServicioClientes().buscar(""),
+        clientes=ServicioClientes().buscar("", limite=None),   # todos: el dueño debe poder elegirse siempre
         tipos=TIPOS_PAQUETE,
     ), estado
 

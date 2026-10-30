@@ -52,15 +52,13 @@ def normalizar_clave_inicial(clave: str) -> str:
     return clave.strip().upper()
 
 
-def errores_clave_nueva(clave: str, confirmacion: str) -> list[str]:
-    """Las tres condiciones de IU-02, verificadas también en el servidor."""
+def errores_clave_nueva(clave: str, confirmacion: str, clave_actual: str = "") -> list[str]:
+    """Las tres condiciones de IU-02 (SDD Figura 28), verificadas también en el servidor."""
     errores = []
     if len(clave) < LONGITUD_MINIMA:
-        errores.append(f"Debe tener al menos {LONGITUD_MINIMA} caracteres.")
-    if not any(c.isalpha() for c in clave):
-        errores.append("Debe incluir al menos una letra.")
-    if not any(c.isdigit() for c in clave):
-        errores.append("Debe incluir al menos un número.")
+        errores.append(f"La clave nueva debe tener al menos {LONGITUD_MINIMA} caracteres.")
+    if clave_actual and clave == clave_actual:
+        errores.append("La clave nueva debe ser distinta de la actual.")
     if clave != confirmacion:
         errores.append("La confirmación no coincide con la clave nueva.")
     return errores

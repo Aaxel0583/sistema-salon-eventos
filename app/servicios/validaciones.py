@@ -62,6 +62,11 @@ def texto_opcional(valor: str | None, maximo: int) -> str | None:
     return valor[:maximo] if valor else None
 
 
+# Topes de las columnas: INTEGER y NUMERIC(10,2) en 01_esquema.sql.
+_MAX_ENTERO = 2_147_483_647
+_MAX_IMPORTE = Decimal("99999999.99")
+
+
 def entero_positivo(valor: str | None, campo: str) -> int:
     try:
         numero = int(str(valor).strip())
@@ -69,15 +74,22 @@ def entero_positivo(valor: str | None, campo: str) -> int:
         raise ErrorValidacion(f"El campo «{campo}» debe ser un número entero.") from None
     if numero <= 0:
         raise ErrorValidacion(f"El campo «{campo}» debe ser mayor a cero.")
+    if numero > _MAX_ENTERO:
+        raise ErrorValidacion(f"El campo «{campo}» es demasiado grande.")
     return numero
 
 
 def importe(valor: str | None, campo: str) -> Decimal:
     texto = str(valor or "").replace(",", "").replace("$", "").strip()
     try:
-        numero = Decimal(texto).quantize(Decimal("0.01"))
+        numero = Decimal(texto)
+        if not numero.is_finite():          # "NaN" o "Infinity"
+            raise InvalidOperation
+        numero = numero.quantize(Decimal("0.01"))
     except (InvalidOperation, ValueError):
         raise ErrorValidacion(f"El campo «{campo}» debe ser un importe válido.") from None
     if numero < 0:
         raise ErrorValidacion(f"El campo «{campo}» no puede ser negativo.")
+    if numero > _MAX_IMPORTE:
+        raise ErrorValidacion(f"El campo «{campo}» admite hasta $99,999,999.99.")
     return numero

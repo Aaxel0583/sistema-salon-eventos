@@ -6,9 +6,13 @@ nunca se concatenan valores. DA-02: el SQL vive solo en este paquete.
 Cada repositorio recibe el cursor de una transacción abierta, de modo que
 varios repositorios pueden participar en la misma transacción (DA-05).
 """
+import re
+
 from psycopg import Cursor
 
 from app.dominio.modelos import ROL_CLIENTE, Usuario
+
+LIMITE_BUSQUEDA = 100       # filas del directorio; la pantalla avisa al llegar aquí
 
 _COLUMNAS = """id_usuario, nombre, correo, telefono, rol, clave_hash,
                requiere_cambio_clave, intentos_fallidos, estado"""
@@ -43,13 +47,20 @@ class RepositorioUsuarios:
         fila = self._cur.fetchone()
         return Usuario.desde_fila(fila) if fila else None
 
-    def buscar_clientes(self, texto: str = "", limite: int = 100) -> list[Usuario]:
-        """Directorio de clientes con búsqueda por nombre, correo o celular (RF-11)."""
+    def buscar_clientes(self, texto: str = "", limite: int | None = LIMITE_BUSQUEDA) -> list[Usuario]:
+        """Directorio de clientes con búsqueda por nombre, correo o celular (RF-11).
+        `limite=None` trae a todos (LIMIT NULL en PostgreSQL)."""
         # Se escapan los comodines para que "%" o "_" se busquen literalmente.
         limpio = texto.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         patron = f"%{limpio}%"
+        # El celular se guarda solo con dígitos: "492 111" debe encontrar "4921110011".
+        # Solo si el texto parece celular: "juan23@" no debe traer todo celular con "23".
+        parece_celular = re.fullmatch(r"[\d\s()+.-]*\d[\d\s()+.-]*", texto.strip())
+        patron_tel = "%" + re.sub(r"\D", "", texto) + "%" if parece_celular else patron
         self._cur.execute(
-            f"""SELECT {_COLUMNAS}
+            f"""SELECT {_COLUMNAS},
+                       (SELECT COUNT(*) FROM evento e
+                         WHERE e.id_cliente = usuario.id_usuario) AS num_eventos
                   FROM usuario
                  WHERE rol = %s
                    AND (LOWER(nombre) LIKE %s
@@ -57,7 +68,7 @@ class RepositorioUsuarios:
                         OR COALESCE(telefono, '') LIKE %s)
                  ORDER BY nombre
                  LIMIT %s""",
-            (ROL_CLIENTE, patron, patron, patron, limite),
+            (ROL_CLIENTE, patron, patron, patron_tel, limite),
         )
         return [Usuario.desde_fila(f) for f in self._cur.fetchall()]
 

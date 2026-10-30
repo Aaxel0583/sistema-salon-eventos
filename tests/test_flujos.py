@@ -62,9 +62,12 @@ def test_cp03_alta_de_cliente_y_unicidad(cliente_http, crear_usuario):
     _entrar(cliente_http, correo, clave)
     celular = telefono_unico()
 
+    assert 'name="nombre"' in cliente_http.get("/clientes/nuevo").get_data(as_text=True)   # formulario de alta
+
     respuesta = cliente_http.post("/clientes/nuevo", data={"nombre": "Laura Díaz", "telefono": celular})
     texto = respuesta.get_data(as_text=True)
-    assert respuesta.status_code == 200 and "Clave de acceso de Laura Díaz" in texto
+    assert respuesta.status_code == 200 and "Cliente registrado: Laura Díaz" in texto
+    assert "no volverá a mostrarse" in texto
     assert respuesta.headers["Cache-Control"] == "no-store"
 
     respuesta = cliente_http.post("/clientes/nuevo", data={"nombre": "Otra", "telefono": celular})
@@ -125,3 +128,58 @@ def test_platillo_en_paquete_no_se_elimina(cliente_http, crear_usuario):
     _entrar(cliente_http, correo, clave)
     cliente_http.post("/platillos/1/eliminar")          # "Crema de elote" está en un paquete
     assert "forma parte de uno o más paquetes" in cliente_http.get("/platillos").get_data(as_text=True)
+
+
+def test_cambio_de_clave_cierra_las_demas_sesiones(app, crear_usuario):
+    """RF-10: una sesión abierta con la clave anterior deja de valer."""
+    otra_pc, esta_pc, gerente_http = app.test_client(), app.test_client(), app.test_client()
+    id_cliente, correo, clave = crear_usuario("CLIENTE")
+    _entrar(otra_pc, correo, clave)
+    _entrar(esta_pc, correo, clave)
+
+    respuesta = esta_pc.post("/clave", data={
+        "clave_actual": clave, "clave_nueva": "Otra-2026", "confirmacion": "Otra-2026"})
+    assert respuesta.location.endswith("/mis-eventos")
+    assert esta_pc.get("/mis-eventos").status_code == 200            # quien cambió sigue dentro
+    assert "/login" in otra_pc.get("/mis-eventos").location          # la otra sesión ya no
+
+    _, correo_g, clave_g = crear_usuario("GERENTE")
+    _entrar(gerente_http, correo_g, clave_g)
+    gerente_http.post(f"/clientes/{id_cliente}/clave")
+    assert "/login" in esta_pc.get("/mis-eventos").location          # regeneración del gerente
+
+
+def test_editar_paquete_reemplaza_el_menu(cliente_http, crear_usuario):
+    from app.datos.conexion import BaseDatos
+    _, correo, clave = crear_usuario("GERENTE")
+    _entrar(cliente_http, correo, clave)
+    nombre = "Editable " + correo[:8]
+    cliente_http.post("/paquetes/nuevo", data={
+        "nombre": nombre, "precio_persona": "300", "tipo": "ESTANDAR", "platillos": ["1", "4"]})
+    with BaseDatos.transaccion() as cur:
+        cur.execute("SELECT id_paquete FROM paquete WHERE nombre = %s", (nombre,))
+        id_paquete = cur.fetchone()["id_paquete"]
+
+    respuesta = cliente_http.post(f"/paquetes/{id_paquete}", data={
+        "nombre": nombre, "precio_persona": "350", "tipo": "ESTANDAR", "platillos": ["4", "10"]})
+    assert respuesta.status_code == 302
+    # Si la validación falla, el menú anterior queda intacto (misma transacción).
+    respuesta = cliente_http.post(f"/paquetes/{id_paquete}", data={
+        "nombre": nombre, "precio_persona": "NaN", "tipo": "ESTANDAR", "platillos": ["1"]})
+    assert respuesta.status_code == 422
+
+    with BaseDatos.transaccion() as cur:
+        cur.execute("SELECT id_platillo FROM paquete_platillo WHERE id_paquete = %s ORDER BY 1",
+                    (id_paquete,))
+        assert [f["id_platillo"] for f in cur.fetchall()] == [4, 10]
+        cur.execute("SELECT precio_persona FROM paquete WHERE id_paquete = %s", (id_paquete,))
+        assert str(cur.fetchone()["precio_persona"]) == "350.00"
+
+
+def test_buscar_celular_con_espacios(cliente_http, crear_usuario):
+    _, correo, clave = crear_usuario("GERENTE")
+    _entrar(cliente_http, correo, clave)
+    telefono = telefono_unico()
+    cliente_http.post("/clientes/nuevo", data={"nombre": "Celular Espacios", "correo": "", "telefono": telefono})
+    legible = f"{telefono[:3]} {telefono[3:6]} {telefono[6:]}"         # como se ve en la tabla
+    assert "Celular Espacios" in cliente_http.get("/clientes", query_string={"q": legible}).get_data(as_text=True)
