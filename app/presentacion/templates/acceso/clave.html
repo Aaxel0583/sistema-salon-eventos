@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{# IU-02 · Cambio obligatorio de la clave inicial · SDD Figura 28 #}
+{% block titulo %}{{ 'Define tu propia clave' if obligatorio else 'Cambiar mi clave' }}{% endblock %}
+{% block contenido %}
+<div class="cambio-clave">
+  <section class="cambio-clave__formulario" aria-labelledby="titulo-clave">
+    <h1 id="titulo-clave">{{ 'Define tu propia clave' if obligatorio else 'Cambiar mi clave' }}</h1>
+    {% if obligatorio %}
+      <p class="texto-suave">Es tu primer ingreso. Antes de continuar, reemplaza la clave que te entregó el gerente.</p>
+    {% endif %}
+
+    <form method="post" class="formulario" novalidate data-validar-clave>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label for="current-password">{{ 'Clave actual (la que te entregaron)' if obligatorio else 'Clave actual' }}</label>
+      <input type="password" id="current-password" name="clave_actual" autocomplete="current-password" required>
+
+      <label for="new-password">Clave nueva</label>
+      <div class="campo-clave">
+        <input type="password" id="new-password" name="clave_nueva" autocomplete="new-password"
+               minlength="8" required aria-describedby="reglas-clave">
+        <button type="button" class="boton boton--texto" data-mostrar-clave="new-password"
+                aria-controls="new-password" aria-pressed="false">Mostrar</button>
+      </div>
+
+      <label for="confirmacion">Confirma la clave nueva</label>
+      <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password"
+             required aria-describedby="reglas-clave">
+
+      <ul class="reglas" id="reglas-clave" aria-live="polite">
+        <li data-regla="largo">Al menos 8 caracteres</li>
+        <li data-regla="distinta">Distinta de la clave {{ 'inicial' if obligatorio else 'actual' }}</li>
+        <li data-regla="coincide">Ambas coinciden</li>
+      </ul>
+
+      <button type="submit" class="boton boton--primario boton--ancho">Guardar y continuar</button>
+    </form>
+  </section>
+
+  {% if obligatorio %}
+    <p class="cambio-clave__aviso">La navegación permanece bloqueada hasta completar este paso.</p>
+  {% endif %}
+</div>
+{% endblock %}

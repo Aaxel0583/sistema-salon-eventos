@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{# IU-04 · Directorio de clientes · SDD Figura 30 #}
+{% block titulo %}Clientes{% endblock %}
+{% block contenido %}
+<div class="encabezado encabezado--accion">
+  <h1>Clientes</h1>
+  {% if not mostrar_formulario %}
+    <a class="boton boton--primario" href="{{ url_for('clientes.formulario_nuevo') }}">+ Nuevo cliente</a>
+  {% endif %}
+</div>
+
+{% if mostrar_formulario %}
+  <section class="panel" aria-labelledby="t-alta">
+    <h2 id="t-alta">Nuevo cliente</h2>
+    <form method="post" action="{{ url_for('clientes.nuevo') }}" class="formulario-linea" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="campo campo--ancho">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" name="nombre" value="{{ formulario.nombre }}" maxlength="120"
+               autocomplete="off" required autofocus>
+      </div>
+      <div class="campo">
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" name="correo" value="{{ formulario.correo }}" maxlength="120"
+               autocomplete="off" spellcheck="false">
+      </div>
+      <div class="campo">
+        <label for="telefono">Celular</label>
+        <input type="tel" id="telefono" name="telefono" value="{{ formulario.telefono }}"
+               inputmode="numeric" autocomplete="off" placeholder="10 dígitos">
+      </div>
+      <div class="acciones-formulario">
+        <button type="submit" class="boton boton--primario">Registrar cliente</button>
+        <a class="boton" href="{{ url_for('clientes.directorio') }}">Cancelar</a>
+      </div>
+    </form>
+  </section>
+{% endif %}
+
+<form method="get" action="{{ url_for('clientes.directorio') }}" class="buscador" role="search">
+  <label for="q" class="solo-lector">Buscar cliente</label>
+  <input type="search" id="q" name="q" value="{{ q }}" placeholder="Buscar por nombre, correo o celular…" enterkeyhint="search">
+  <button type="submit" class="boton">Buscar</button>
+</form>
+
+{% if clave_mostrada %}
+  <section class="clave-generada" role="status" aria-labelledby="t-clave">
+    <h2 id="t-clave">{{ clave_mostrada.titulo }}: {{ clave_mostrada.nombre }}</h2>
+    <div class="clave-generada__fila">
+      <span>Clave de acceso:</span>
+      <span class="clave-generada__valor">{{ clave_mostrada.clave_inicial }}</span>
+      <span class="clave-generada__aviso">Entrégala al cliente ahora: no volverá a mostrarse.</span>
+    </div>
+  </section>
+{% endif %}
+
+{% if clientes %}
+  <div class="tabla-desplazable">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Correo</th>
+          <th scope="col">Celular</th>
+          <th scope="col">Eventos</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in clientes %}
+        <tr>
+          <td>{{ c.nombre }}</td>
+          <td>{{ c.correo or '—' }}</td>
+          <td>{{ c.telefono_legible or '—' }}</td>
+          <td>{{ c.num_eventos }}</td>
+          <td>
+            {% if c.esta_bloqueado %}<span class="estado estado--rojo">Bloqueado</span>
+            {% else %}<span class="estado estado--verde">Activo</span>{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('clientes.regenerar_clave', id_cliente=c.id_usuario) }}"
+                  data-confirmar="Se generará una clave nueva para {{ c.nombre }} y la anterior dejará de funcionar. ¿Continuar?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="enlace">{{ 'Reactivar' if c.esta_bloqueado else 'Clave nueva' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if clientes|length >= limite %}
+    <p class="aviso aviso--aviso">Se muestran los primeros {{ limite }} clientes. Escribe un nombre, correo o celular para encontrar a los demás.</p>
+  {% endif %}
+{% elif q %}
+  <p class="texto-suave">Ningún cliente coincide con «{{ q }}».</p>
+{% else %}
+  <p class="texto-suave">Aún no hay clientes. Usa «+ Nuevo cliente» para registrar el primero.</p>
+{% endif %}
+
+<p class="nota">Basta con uno de los dos datos de contacto. El sistema rechaza un correo o un celular que ya pertenezca a otro cliente.</p>
+{% endblock %}

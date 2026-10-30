@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{# IU-01 · Acceso · SDD Figura 27 #}
+{% block titulo %}Acceso{% endblock %}
+{% block clase_body %}pagina-acceso{% endblock %}
+{% block barra %}{% endblock %}
+{% block mensajes %}{% endblock %}
+{% block contenido %}
+<div class="acceso">
+  <section class="acceso__marca" aria-hidden="true">
+    <p class="acceso__lema">Cada fecha,<br>un solo evento</p>
+    <p class="acceso__descripcion">Agenda de salones, paquetes de banquete y control de anticipos en un mismo lugar.</p>
+    <p class="acceso__negocio">{{ nombre_negocio }}</p>
+  </section>
+
+  <section class="acceso__formulario" aria-labelledby="titulo-acceso">
+    <h1 id="titulo-acceso">Entrar</h1>
+    {% include "_mensajes.html" %}
+
+    <form method="post" class="formulario" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label for="identificador">Correo o celular</label>
+      <input type="text" id="identificador" name="identificador" value="{{ identificador }}"
+             autocomplete="username" autocapitalize="none" autocorrect="off"
+             spellcheck="false" enterkeyhint="next" required autofocus>
+
+      <label for="current-password">Clave de acceso</label>
+      <div class="campo-clave">
+        <input type="password" id="current-password" name="clave"
+               autocomplete="current-password" enterkeyhint="done" required>
+        <button type="button" class="boton boton--texto" data-mostrar-clave="current-password"
+                aria-controls="current-password" aria-pressed="false">Mostrar</button>
+      </div>
+
+      <p class="nota">Si eres cliente, entra con el correo o el celular que diste al reservar, y la clave que te entregaron.</p>
+
+      <button type="submit" class="boton boton--primario boton--ancho">Entrar</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
