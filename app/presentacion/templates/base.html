@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}{% endblock %} · {{ nombre_negocio }}</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
@@ -18,10 +19,11 @@
         <nav class="barra__nav" aria-label="Navegación principal">
           {% if not usuario.debe_cambiar_clave %}
             {% if usuario.es_gerente %}
-              {# Eventos (Sprint 2) y Reportes (Sprint 3) se agregan al construirse #}
+              {# Orden de la Figura 29. Reportes (Sprint 3) se agrega al construirse. #}
               <a href="{{ url_for('panel.inicio') }}" {% if request.blueprint == 'panel' %}aria-current="page"{% endif %}>Panel</a>
               <a href="{{ url_for('catalogos.salones') }}" {% if request.blueprint == 'catalogos' %}aria-current="page"{% endif %}>Catálogos</a>
               <a href="{{ url_for('clientes.directorio') }}" {% if request.blueprint == 'clientes' %}aria-current="page"{% endif %}>Clientes</a>
+              <a href="{{ url_for('eventos.listado') }}" {% if request.blueprint == 'eventos' %}aria-current="page"{% endif %}>Eventos</a>
             {% else %}
               <a href="{{ url_for('portal.mis_eventos') }}" {% if request.blueprint == 'portal' %}aria-current="page"{% endif %}>Mis eventos</a>
             {% endif %}

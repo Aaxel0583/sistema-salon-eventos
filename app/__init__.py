@@ -6,6 +6,7 @@ Ensambla las capas del SDD §3: presentación (PKG-01), rutas (PKG-02),
 servicios (PKG-03), seguridad (PKG-04) y acceso a datos (PKG-05).
 """
 import logging
+import re
 
 from flask import Flask, g, redirect, render_template, request, url_for
 from flask_wtf.csrf import CSRFError, CSRFProtect
@@ -45,6 +46,7 @@ def create_app(config: Configuracion | None = None) -> Flask:
     BaseDatos.iniciar(config.database_url, config.pool_min, config.pool_max)
 
     _registrar_blueprints(app)
+    _registrar_filtros(app)
     _registrar_ganchos(app, config)
     _registrar_errores(app)
     return app
@@ -54,11 +56,32 @@ def _registrar_blueprints(app: Flask) -> None:
     from app.rutas.acceso import bp as acceso
     from app.rutas.catalogos import bp as catalogos
     from app.rutas.clientes import bp as clientes
+    from app.rutas.eventos import bp as eventos
     from app.rutas.panel import bp as panel
     from app.rutas.portal import bp as portal
 
-    for blueprint in (acceso, panel, clientes, catalogos, portal):
+    for blueprint in (acceso, panel, eventos, clientes, catalogos, portal):
         app.register_blueprint(blueprint)
+
+
+def _registrar_filtros(app: Flask) -> None:
+    """Formato de cifras y fechas para las plantillas (es-MX)."""
+
+    @app.template_filter("moneda")
+    def moneda(valor) -> str:
+        if valor is None:
+            return "—"
+        signo = "−" if valor < 0 else ""
+        return f"{signo}${abs(valor):,.2f}"
+
+    @app.template_filter("contacto")
+    def contacto(valor) -> str:
+        """'ana@x.mx / 4921110011' -> 'ana@x.mx / 492 111 0011' (mismo formato que IU-04)."""
+        return re.sub(r"(?<!\d)(\d{3})(\d{3})(\d{4})(?!\d)", r"\1 \2 \3", valor or "")
+
+    @app.template_filter("fecha")
+    def fecha(valor) -> str:
+        return valor.strftime("%d/%m/%Y") if valor else "—"
 
 
 def _registrar_ganchos(app: Flask, config: Configuracion) -> None:

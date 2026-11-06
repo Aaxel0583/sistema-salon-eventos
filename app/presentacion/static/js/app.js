@@ -140,4 +140,107 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // IU-06 (Figura 32) · Cotización en vivo, lugares disponibles y alta rápida del cliente.
+  // Solo orienta la captura: el costo oficial lo calcula la base al guardar (RN-09)
+  // y el aforo lo hace cumplir el trigger de HU-007 (BF001).
+  const formReserva = document.querySelector("[data-reservacion]");
+  if (formReserva) {
+    const $ = (selector) => formReserva.querySelector(selector);
+    const salon = $("#id_salon"), paquete = $("#id_paquete"), invitados = $("#num_asistentes");
+    const inicio = $("#hora_inicio"), termino = $("#hora_fin");
+    const cliente = $("#id_cliente"), esNuevo = $("#cliente_nuevo");
+    const bloqueNuevo = $("[data-cliente-nuevo]"), bloqueExistente = $("[data-cliente-existente]");
+    const avisoAforo = $("[data-aviso-aforo]"), avisoHorario = $("[data-aviso-horario]");
+    const guardar = $("[data-guardar]"), motivo = $("[data-motivo]");
+    const salida = {
+      renta: $("[data-cot-renta]"), etiquetaPaquete: $("[data-cot-paquete-etiqueta]"),
+      paquete: $("[data-cot-paquete]"), total: $("[data-cot-total]"), lugares: $("[data-cot-lugares]"),
+    };
+    const pesos = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+    const enteros = new Intl.NumberFormat("es-MX");
+    const elegida = (select) => (select.value ? select.selectedOptions[0] : null);
+
+    // Un paquete personalizado solo se ofrece a su dueño (RN-12).
+    const filtrarPaquetes = () => {
+      const dueno = esNuevo.checked ? "" : cliente.value;
+      for (const opcion of paquete.options) {
+        if (!opcion.value) continue;
+        const propio = opcion.dataset.cliente === "" || opcion.dataset.cliente === dueno;
+        opcion.disabled = !propio;
+        opcion.hidden = !propio;
+      }
+      if (paquete.selectedOptions[0]?.disabled) paquete.value = "";
+    };
+
+    const alternarCliente = () => {
+      bloqueNuevo.hidden = !esNuevo.checked;
+      bloqueExistente.hidden = esNuevo.checked;
+      cliente.required = !esNuevo.checked;
+      formReserva.querySelector("#nombre").required = esNuevo.checked;
+      filtrarPaquetes();
+    };
+
+    const recalcular = () => {
+      const s = elegida(salon), p = elegida(paquete);
+      const n = Math.max(0, parseInt(invitados.value, 10) || 0);
+      const renta = s ? Number(s.dataset.renta) : 0;
+      const precio = p ? Number(p.dataset.precio) : 0;
+
+      salida.renta.textContent = s ? pesos.format(renta) : "—";
+      salida.etiquetaPaquete.textContent = `Paquete × ${enteros.format(n)} pers.`;
+      salida.paquete.textContent = p ? pesos.format(precio * n) : "—";
+      salida.total.textContent = s && p && n ? pesos.format(renta + precio * n) : "—";
+
+      // RF-23 · lugares disponibles y aviso de aforo excedido
+      let problema = "";
+      salida.lugares.classList.remove("excedido", "justo");
+      if (s && n) {
+        const capacidad = Number(s.dataset.capacidad);
+        const libres = capacidad - n;
+        salida.lugares.textContent = libres < 0 ? `−${enteros.format(-libres)}` : enteros.format(libres);
+        if (libres < 0) {
+          salida.lugares.classList.add("excedido");
+          problema = "aforo";
+          avisoAforo.textContent = `El ${s.dataset.nombre} admite ${enteros.format(capacidad)} personas y capturaste ` +
+            `${enteros.format(n)}. Reduce los invitados o elige otro salón.`;
+        } else if (libres <= capacidad * 0.1) {
+          salida.lugares.classList.add("justo");
+        }
+      } else {
+        salida.lugares.textContent = s ? enteros.format(Number(s.dataset.capacidad)) : "—";
+      }
+      avisoAforo.hidden = problema !== "aforo";
+
+      // La hora de término debe ser posterior a la de inicio (ck_evento_horario)
+      const horarioMal = inicio.value && termino.value && termino.value <= inicio.value;
+      avisoHorario.hidden = !horarioMal;
+      if (horarioMal) {
+        avisoHorario.textContent = `La hora de término (${termino.value}) debe ser posterior a la de inicio (${inicio.value}).`;
+        problema = problema || "horario";
+      }
+
+      guardar.disabled = Boolean(problema);
+      motivo.hidden = !problema;
+      motivo.textContent = problema === "aforo" ? "Deshabilitado mientras el aforo no se cumpla."
+                         : problema === "horario" ? "Deshabilitado hasta corregir el horario." : "";
+    };
+
+    esNuevo.addEventListener("change", () => { alternarCliente(); recalcular(); });
+    cliente.addEventListener("change", () => { filtrarPaquetes(); recalcular(); });
+    [salon, paquete].forEach((campo) => campo.addEventListener("change", recalcular));
+    [invitados, inicio, termino].forEach((campo) => campo.addEventListener("input", recalcular));
+
+    // Evita registrar dos veces el mismo evento por un doble clic.
+    formReserva.addEventListener("submit", (evento) => {
+      if (guardar.disabled) { evento.preventDefault(); return; }
+      guardar.disabled = true;
+      guardar.textContent = "Guardando…";
+    });
+    // Al volver con el botón «atrás» el navegador puede restaurar el botón deshabilitado.
+    window.addEventListener("pageshow", () => { guardar.textContent = "Guardar reservación"; recalcular(); });
+
+    alternarCliente();
+    recalcular();
+  }
 });

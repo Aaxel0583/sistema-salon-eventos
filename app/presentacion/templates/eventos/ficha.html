@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{# IU-07 · Ficha del evento · SDD Figura 33 · C-04 y C-08
+   Sprint 2 · Parte 1 (HU-006): datos, menú, gerente responsable (RF-29) y cambio
+   de estatus según el diagrama de estados (SDD §5.3).
+   El registro de abonos y la tabla de pagos (C-05, HU-009) llegan en el Sprint 3. #}
+{% block titulo %}{{ evento.clave_proyecto }}{% endblock %}
+{% block contenido %}
+<div class="encabezado cabecera-evento">
+  <div>
+    <p class="cabecera-evento__miga"><a href="{{ url_for('eventos.listado') }}">Eventos</a></p>
+    <h1>{{ evento.clave_proyecto }} · {{ evento.titulo }}</h1>
+  </div>
+  <div class="cabecera-evento__estado">
+    {% with e = evento %}{% include "eventos/_estado.html" %}{% endwith %}
+  </div>
+</div>
+
+{% if evento.pendiente_de_cierre(hoy) %}
+  <div class="aviso aviso--aviso" role="status">
+    La fecha del evento ya pasó y sigue abierto. Indica si se realizó o se canceló.
+  </div>
+{% endif %}
+
+<div class="dos-columnas">
+  <section class="panel" aria-labelledby="t-datos">
+    <h2 id="t-datos">Datos del evento</h2>
+    <dl class="datos">
+      <div><dt>Cliente</dt><dd>{{ evento.nombre_cliente }}</dd></div>
+      {% if evento.contacto_cliente %}<div><dt>Contacto</dt><dd>{{ evento.contacto_cliente|contacto }}</dd></div>{% endif %}
+      <div><dt>Salón</dt><dd>{{ evento.nombre_salon }} ({{ evento.capacidad_maxima }} personas)</dd></div>
+      <div><dt>Fecha y horario</dt><dd>{{ evento.fecha_evento|fecha }} · {{ evento.horario }}</dd></div>
+      <div><dt>Invitados</dt><dd>{{ evento.num_asistentes }}</dd></div>
+      <div><dt>Paquete</dt><dd>{{ evento.nombre_paquete or '—' }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel panel--suave" aria-labelledby="t-cuenta">
+    <h2 id="t-cuenta">Estado de cuenta</h2>
+    <dl class="datos">
+      <div><dt>Costo total</dt><dd>{{ evento.costo_total|moneda }}</dd></div>
+      <div><dt>Pagado</dt><dd class="cifra--verde">{{ evento.total_pagado|moneda }}</dd></div>
+      <div class="datos__total"><dt>Saldo pendiente</dt><dd class="{{ 'cifra--ambar' if evento.saldo > 0 else 'cifra--verde' }}">{{ evento.saldo|moneda }}</dd></div>
+    </dl>
+    <p class="nota">El costo se fijó al cotizar: cambios posteriores en la renta del salón o en el precio del paquete no lo alteran.</p>
+  </section>
+</div>
+
+<div class="dos-columnas">
+  <section class="panel" aria-labelledby="t-gestion">
+    <h2 id="t-gestion">Gestión</h2>
+
+    <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=evento.id_evento) }}" class="formulario-linea"
+          {% if siguientes %}data-titulo="¿Cambiar el estatus de {{ evento.clave_proyecto }}?" data-verbo="Cambiar estatus"
+          data-confirmar="El cambio queda en la bitácora. Si eliges Realizado o Cancelado, el evento cierra su ciclo y su estatus ya no podrá cambiar."{% endif %}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="campo">
+        <label for="estado">Estatus</label>
+        {% if siguientes %}
+          <select id="estado" name="estado" required>
+            <option value="">Elige el nuevo estatus</option>
+            {% for codigo in siguientes %}
+              <option value="{{ codigo }}">{{ estados[codigo] }}</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <p class="texto-suave">{{ evento.estado_legible }}: el evento cerró su ciclo y su estatus ya no cambia.</p>
+        {% endif %}
+      </div>
+      {% if siguientes %}
+        <div class="acciones-formulario"><button type="submit" class="boton">Cambiar estatus</button></div>
+      {% endif %}
+    </form>
+
+    <form method="post" action="{{ url_for('eventos.asignar_gerente', id_evento=evento.id_evento) }}" class="formulario-linea">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="campo">
+        <label for="id_gerente">Gerente responsable</label>
+        <select id="id_gerente" name="id_gerente">
+          {% if not evento.id_gerente %}<option value="">Sin asignar</option>{% endif %}
+          {% for g in gerentes %}
+            <option value="{{ g.id_usuario }}" {% if g.id_usuario == evento.id_gerente %}selected{% endif %}>{{ g.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="acciones-formulario"><button type="submit" class="boton">Asignar</button></div>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="t-menu">
+    <h2 id="t-menu">Menú contratado{% if paquete %} · {{ paquete.nombre }}{% endif %}</h2>
+    {% if paquete and paquete.platillos %}
+      <dl class="menu">
+        {% for categoria, lista in paquete.menu().items() %}
+          <div><dt>{{ lista[0].categoria_legible }}</dt><dd>{{ lista|map(attribute='nombre')|join(', ') }}</dd></div>
+        {% endfor %}
+      </dl>
+    {% else %}
+      <p class="texto-suave">El evento no tiene paquete de banquete.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

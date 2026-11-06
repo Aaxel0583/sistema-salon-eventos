@@ -72,7 +72,7 @@
           <th scope="col">Celular</th>
           <th scope="col">Eventos</th>
           <th scope="col">Estado</th>
-          <th scope="col">Acción</th>
+          <th scope="col">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -87,12 +87,15 @@
             {% else %}<span class="estado estado--verde">Activo</span>{% endif %}
           </td>
           <td class="tabla__accion">
+            <div class="acciones-linea">
+            <a class="boton boton--pequeno" href="{{ url_for('eventos.nuevo', cliente=c.id_usuario) }}">Reservar<span class="solo-lector"> para {{ c.nombre }}</span></a>
             <form method="post" action="{{ url_for('clientes.regenerar_clave', id_cliente=c.id_usuario) }}"
                   data-titulo="¿Dar una clave nueva a {{ c.nombre }}?" data-verbo="Generar clave nueva"
                   data-confirmar="La clave actual deja de funcionar en este momento y su sesión abierta se cierra. Tendrás que entregarle la nueva.">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="boton boton--pequeno boton--peligro">{{ 'Desbloquear y dar clave nueva' if c.esta_bloqueado else 'Clave nueva' }}<span class="solo-lector"> para {{ c.nombre }}</span></button>
             </form>
+            </div>
           </td>
         </tr>
       {% endfor %}

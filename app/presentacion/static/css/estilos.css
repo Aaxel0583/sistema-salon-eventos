@@ -150,7 +150,7 @@ input, textarea { caret-color: var(--azul); }
 .fila-campos { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
 
 input[type="text"], input[type="email"], input[type="tel"], input[type="password"],
-input[type="number"], input[type="search"], select, textarea {
+input[type="number"], input[type="search"], input[type="date"], input[type="time"], select, textarea {
   width: 100%; font: inherit; color: inherit;
   padding: .55rem .75rem; border: 1px solid var(--control-borde); border-radius: var(--radio-control);
   background: #fff; min-height: 44px;
@@ -351,6 +351,87 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .menu dd { margin: 0; }
 @media (max-width: 480px) { .menu div { grid-template-columns: 1fr; gap: 0; } }
 
+/* ----------------------- Sprint 2 · utilidades ----------------------- */
+[hidden] { display: none !important; }
+.cifra { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla .numero { text-align: right; }
+.sin-corte { white-space: nowrap; }
+.cifra--roja  { color: var(--rojo); font-weight: 600; }
+.cifra--verde { color: var(--verde); font-weight: 600; }
+.cifra--ambar { color: #8a6400; font-weight: 700; }
+.campo--completo { flex-basis: 100% !important; }
+.campo--corto { flex: 1 1 110px !important; }
+.fila-campos--horario { align-items: flex-start; }
+
+/* --------------------- IU-03 · Tablero (Figura 29) -------------------- */
+
+.ocupacion li { flex-direction: column; align-items: stretch; gap: .35rem; }
+.ocupacion__nombre { font-weight: 700; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.ocupacion__nombre a { color: var(--marino); text-decoration-color: transparent; text-underline-offset: .2em;
+                       transition: text-decoration-color var(--rapido) var(--curva); }
+.ocupacion__nombre a:hover { text-decoration-color: currentColor; }
+.ocupacion__detalle { font-size: .88rem; color: var(--tinta-suave); }
+
+/* Medidor de aforo: <meter> nativo (sin estilos en línea, por la CSP) */
+.medidor { width: 100%; height: .7rem; -webkit-appearance: none; appearance: none;
+           background: #e2e8f0; border: 0; border-radius: 999px; overflow: hidden; }
+.medidor::-webkit-meter-bar { background: #e2e8f0; border: 0; border-radius: 999px; height: .7rem; }
+.medidor::-webkit-meter-optimum-value,
+.medidor::-webkit-meter-suboptimum-value,
+.medidor::-webkit-meter-even-less-good-value { background: var(--azul); border-radius: 999px; }
+.medidor::-moz-meter-bar { background: var(--azul); border-radius: 999px; }
+.medidor--alto::-webkit-meter-optimum-value,
+.medidor--alto::-webkit-meter-suboptimum-value,
+.medidor--alto::-webkit-meter-even-less-good-value { background: var(--rojo); }
+.medidor--alto::-moz-meter-bar { background: var(--rojo); }
+
+.pendientes__aviso { margin: 1rem 0 .75rem; }
+.panel .tabla-desplazable { margin-bottom: 0; }
+.encabezado--accion > .encabezado--agenda { flex: 1 1 auto; }
+
+/* ----------------------- Listado de eventos ----------------------- */
+.filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-bottom: 1rem; }
+.filtros .campo { display: flex; flex-direction: column; gap: .25rem; flex: 1 1 170px; min-width: 0; }
+.filtros .campo--ancho { flex: 2 1 260px; }
+.filtros label { font-weight: 600; color: #444c5a; }
+
+/* -------------------- IU-06 · Reservación (Figura 32) -------------------- */
+.reservacion { display: grid; gap: 1rem 1.5rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .reservacion { grid-template-columns: minmax(0, 1fr) 320px; } }
+.reservacion__captura { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.reservacion__captura label { font-weight: 600; color: #444c5a; }
+.reservacion .aviso { margin-bottom: 0; }
+
+.bloque-cliente { margin: 0; display: flex; flex-direction: column; gap: .5rem; }
+.bloque-cliente legend { font-weight: 700; color: var(--marino); padding: 0 .25rem; }
+.bloque-cliente .formulario-linea { margin-top: .25rem; }
+.bloque-cliente .nota { margin: 0; }
+
+.cotizacion { margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+@media (min-width: 900px) { .cotizacion { position: sticky; top: 1rem; } }
+.cotizacion dl { margin: 0; }
+.cotizacion dl div { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .3rem 0; }
+.cotizacion dt { color: var(--tinta-suave); }
+.cotizacion dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.cotizacion__total { border-top: 1px solid var(--azul-borde); padding-top: .4rem; }
+.cotizacion__total dt { color: var(--marino); font-weight: 700; }
+.cotizacion__total dd { font-size: 1.5rem; font-weight: 700; color: var(--marino); }
+.cotizacion__lugares dd.excedido { color: var(--rojo); }
+.cotizacion__lugares dd.justo { color: #8a6400; }
+.cotizacion .boton--primario { margin-top: .4rem; }
+.cotizacion__motivo { text-align: center; margin: -.2rem 0 0; }
+.cotizacion .enlace-cancelar { align-self: center; }
+
+/* -------------------- IU-07 · Ficha del evento -------------------- */
+.cabecera-evento { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: .5rem 1rem; }
+.cabecera-evento h1 { margin: 0; }
+.cabecera-evento__miga { margin: 0 0 .2rem; font-size: .9rem; }
+.cabecera-evento__estado { display: flex; gap: .4rem; padding-bottom: .3rem; }
+.datos__total { border-bottom: 0 !important; padding-top: .55rem !important; align-items: baseline; }
+.datos__total dt { color: var(--marino) !important; font-weight: 700; }
+.datos__total dd { font-size: 1.25rem; }
+.panel .formulario-linea + .formulario-linea { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dbe3ef; }
+
 /* ---------------------------- Transiciones ---------------------------- */
 /* Cambio de pantalla: cross-document View Transitions, solo CSS. La barra
    tiene nombre propio y queda fija; solo el contenido se desvanece. */
@@ -433,6 +514,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   .tabla--tarjetas tbody tr:hover :is(th, td) { display: block; padding: 0; border: 0; background: none; }
   .tabla--tarjetas .tabla__titulo { grid-column: 1; font-size: 1.1rem; }
   .tabla--tarjetas .tabla__estado { grid-column: 2; grid-row: 1; text-align: right; }
+  .tabla--tarjetas .numero { text-align: left; }
   .tabla--tarjetas td[data-etiqueta]:not(.tabla__estado) { grid-column: 1 / -1; color: var(--tinta-suave); font-size: .9rem; }
   .tabla--tarjetas td[data-etiqueta]:not(.tabla__estado)::before { content: attr(data-etiqueta) ": "; color: var(--tinta-suave); }
   .tabla--tarjetas .tabla__accion { grid-column: 1 / -1; margin-top: .25rem; padding-top: .25rem; border-top: 1px solid #e3e9f2; }

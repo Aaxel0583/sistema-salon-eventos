@@ -30,7 +30,8 @@ def pytest_collection_modifyitems(config, items):
 def base_pruebas():
     import psycopg
     with psycopg.connect(URL_PRUEBAS, autocommit=True) as conexion:
-        for script in ("00_limpiar.sql", "01_esquema.sql", "02_reglas_sprint1.sql", "03_semilla.sql"):
+        for script in ("00_limpiar.sql", "01_esquema.sql", "02_reglas_sprint1.sql", "03_semilla.sql",
+                       "04_eventos_sprint2.sql"):
             conexion.execute((CARPETA_BD / script).read_text(encoding="utf-8"))
     return URL_PRUEBAS
 

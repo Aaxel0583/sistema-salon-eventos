@@ -80,6 +80,13 @@ class RepositorioUsuarios:
         )
         return [Usuario.desde_fila(f) for f in self._cur.fetchall()]
 
+    def listar_gerentes(self) -> list[Usuario]:
+        """Gerentes que pueden quedar como responsables de un evento (RF-29)."""
+        self._cur.execute(
+            f"SELECT {_COLUMNAS} FROM usuario WHERE rol = 'GERENTE' ORDER BY nombre"
+        )
+        return [Usuario.desde_fila(f) for f in self._cur.fetchall()]
+
     def contar_por_rol(self, rol: str) -> int:
         self._cur.execute("SELECT COUNT(*) AS total FROM usuario WHERE rol = %s", (rol,))
         return self._cur.fetchone()["total"]
