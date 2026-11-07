@@ -2,12 +2,11 @@
 {% block titulo %}Paquetes{% endblock %}
 {% block contenido %}
 <div class="encabezado">
-  <h1>Catálogos</h1>
   {% with activa='paquetes' %}{% include "catalogos/_pestanas.html" %}{% endwith %}
-</div>
-
-<div class="acciones acciones--fin">
-  <a class="boton boton--primario" href="{{ url_for('catalogos.nuevo_paquete') }}">Armar paquete</a>
+  <div class="encabezado--accion">
+    <h1>Paquetes</h1>
+    <a class="boton boton--primario" href="{{ url_for('catalogos.nuevo_paquete') }}">Armar paquete</a>
+  </div>
 </div>
 
 {% for p in paquetes %}
@@ -16,7 +15,7 @@
       <div>
         <h2 id="paq-{{ p.id_paquete }}">{{ p.nombre }}</h2>
         <p class="texto-suave">
-          {% if p.es_personalizado %}<span class="etiqueta etiqueta--ambar">Personalizado</span> para {{ p.nombre_cliente }}
+          {% if p.es_personalizado %}<span class="etiqueta etiqueta--marino">Personalizado</span> para {{ p.nombre_cliente }}
           {% else %}<span class="etiqueta etiqueta--gris">Estándar</span>{% endif %}
         </p>
       </div>
@@ -28,11 +27,12 @@
       {% endfor %}
     </dl>
     <div class="acciones">
-      <a class="boton boton--pequeno" href="{{ url_for('catalogos.editar_paquete', id_paquete=p.id_paquete) }}">Editar</a>
+      <a class="boton boton--pequeno" href="{{ url_for('catalogos.editar_paquete', id_paquete=p.id_paquete) }}">Editar<span class="solo-lector"> {{ p.nombre }}</span></a>
       <form method="post" action="{{ url_for('catalogos.eliminar_paquete', id_paquete=p.id_paquete) }}"
-            data-confirmar="¿Eliminar el paquete «{{ p.nombre }}»?">
+            data-titulo="¿Eliminar «{{ p.nombre }}»?" data-verbo="Eliminar paquete"
+            data-confirmar="El paquete y su menú se borran del catálogo. Esta acción no se puede deshacer.">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="boton boton--pequeno boton--peligro">Eliminar</button>
+        <button type="submit" class="boton boton--pequeno boton--peligro">Eliminar<span class="solo-lector"> {{ p.nombre }}</span></button>
       </form>
     </div>
   </article>

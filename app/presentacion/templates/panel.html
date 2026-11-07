@@ -1,26 +1,47 @@
 {% extends "base.html" %}
-{% block titulo %}Tablero{% endblock %}
+{% block titulo %}Panel{% endblock %}
 {% block contenido %}
 {# IU-03 · Tablero del gerente · SDD Figura 29.
-   Sprint 1: catálogos y actividad. Los indicadores de eventos, la ocupación
-   por salón y el aviso de eventos por cerrar llegan con HU-006 (Sprint 2). #}
-<div class="encabezado">
-  <h1>Panel de operación</h1>
+   Sprint 1: pendientes, catálogos y actividad. Los indicadores de eventos, la
+   ocupación por salón y el aviso de eventos por cerrar llegan con HU-006 (Sprint 2). #}
+{# Hoja de agenda: la fecha de hoy, el motivo de "La Agenda del Salón" #}
+<div class="encabezado encabezado--agenda">
+  <time class="hoja-agenda" datetime="{{ hoy.isoformat() }}">
+    <span class="hoja-agenda__mes">{{ MESES[hoy.month - 1] }}</span>
+    <span class="hoja-agenda__dia">{{ hoy.day }}</span>
+    <span class="hoja-agenda__semana">{{ DIAS[hoy.weekday()] }}</span>
+  </time>
+  <div>
+  <h1>Panel</h1>
+  <p class="resumen-panel">
+    <a href="{{ url_for('clientes.directorio') }}"><strong>{{ clientes }}</strong> {{ 'cliente' if clientes == 1 else 'clientes' }}</a>
+    <a href="{{ url_for('catalogos.paquetes') }}"><strong>{{ paquetes }}</strong> {{ 'paquete' if paquetes == 1 else 'paquetes' }}</a>
+    <a href="{{ url_for('catalogos.salones') }}"><strong>{{ salones|length }}</strong> salones</a>
+  </p>
+  </div>
 </div>
 
-<section class="indicadores" aria-label="Indicadores">
-  <a class="indicador" href="{{ url_for('clientes.directorio') }}">
-    <span class="indicador__cifra">{{ clientes }}</span>
-    <span class="indicador__texto">Clientes registrados</span>
-  </a>
-  <a class="indicador" href="{{ url_for('catalogos.paquetes') }}">
-    <span class="indicador__cifra">{{ paquetes }}</span>
-    <span class="indicador__texto">Paquetes de banquete</span>
-  </a>
-  <a class="indicador" href="{{ url_for('catalogos.salones') }}">
-    <span class="indicador__cifra">{{ salones|length }}</span>
-    <span class="indicador__texto">Salones en operación</span>
-  </a>
+{% set no_disponibles = salones|rejectattr('esta_disponible')|list %}
+<section class="panel" aria-labelledby="t-pendientes">
+  <h2 id="t-pendientes">Pendientes</h2>
+  {% if bloqueados or no_disponibles %}
+    <ul class="lista-simple">
+      {% for c in bloqueados %}
+        <li>
+          <span><strong>{{ c.nombre }}</strong> <span class="texto-suave">· cuenta bloqueada por intentos fallidos</span></span>
+          <a class="boton boton--pequeno" href="{{ url_for('clientes.directorio', q=c.correo or c.telefono) }}">Darle clave nueva<span class="solo-lector"> a {{ c.nombre }}</span></a>
+        </li>
+      {% endfor %}
+      {% for s in no_disponibles %}
+        <li>
+          <span><strong>{{ s.nombre }}</strong> <span class="texto-suave">· marcado como no disponible para reservar</span></span>
+          <a class="boton boton--pequeno" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}#salon-{{ s.id_salon }}">Revisar<span class="solo-lector"> {{ s.nombre }}</span></a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas y los tres salones están disponibles.</p>
+  {% endif %}
 </section>
 
 <div class="dos-columnas">
@@ -52,5 +73,4 @@
   </section>
 </div>
 
-<p class="nota">Los eventos, la ocupación por salón y los eventos por cerrar aparecerán aquí al habilitar el módulo de reservaciones.</p>
 {% endblock %}

@@ -72,6 +72,14 @@ class RepositorioUsuarios:
         )
         return [Usuario.desde_fila(f) for f in self._cur.fetchall()]
 
+    def clientes_bloqueados(self) -> list[Usuario]:
+        """Pendientes del panel: clientes que esperan una clave nueva (RF-10)."""
+        self._cur.execute(
+            f"SELECT {_COLUMNAS} FROM usuario WHERE rol = %s AND estado = 'BLOQUEADO' ORDER BY nombre",
+            (ROL_CLIENTE,),
+        )
+        return [Usuario.desde_fila(f) for f in self._cur.fetchall()]
+
     def contar_por_rol(self, rol: str) -> int:
         self._cur.execute("SELECT COUNT(*) AS total FROM usuario WHERE rol = %s", (rol,))
         return self._cur.fetchone()["total"]

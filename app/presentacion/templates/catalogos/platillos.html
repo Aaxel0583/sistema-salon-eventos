@@ -2,8 +2,8 @@
 {% block titulo %}Platillos{% endblock %}
 {% block contenido %}
 <div class="encabezado">
-  <h1>Catálogos</h1>
   {% with activa='platillos' %}{% include "catalogos/_pestanas.html" %}{% endwith %}
+  <h1>Platillos</h1>
 </div>
 
 <section class="panel" aria-labelledby="t-nuevo-platillo">
@@ -29,13 +29,13 @@
     <h2 id="cat-{{ codigo }}">{{ categorias[codigo] }} <span class="texto-suave">({{ lista|length }})</span></h2>
     <ul class="lista-simple">
       {% for p in lista %}
-        <li>
+        <li id="platillo-{{ p.id_platillo }}">
           {% if editando == p.id_platillo %}
             <form method="post" action="{{ url_for('catalogos.editar_platillo', id_platillo=p.id_platillo) }}" class="formulario-linea" novalidate>
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="campo">
                 <label for="n-{{ p.id_platillo }}">Nombre</label>
-                <input type="text" id="n-{{ p.id_platillo }}" name="nombre" value="{{ p.nombre }}" maxlength="80" required>
+                <input type="text" id="n-{{ p.id_platillo }}" name="nombre" value="{{ p.nombre }}" maxlength="80" required autofocus>
               </div>
               <div class="campo">
                 <label for="c-{{ p.id_platillo }}">Categoría</label>
@@ -49,11 +49,12 @@
           {% else %}
             <span>{{ p.nombre }}</span>
             <span class="acciones-linea">
-              <a class="boton boton--pequeno" href="{{ url_for('catalogos.platillos', editar=p.id_platillo) }}">Editar</a>
+              <a class="boton boton--pequeno" href="{{ url_for('catalogos.platillos', editar=p.id_platillo) }}#platillo-{{ p.id_platillo }}">Editar<span class="solo-lector"> {{ p.nombre }}</span></a>
               <form method="post" action="{{ url_for('catalogos.eliminar_platillo', id_platillo=p.id_platillo) }}"
-                    data-confirmar="¿Eliminar «{{ p.nombre }}» del catálogo?">
+                    data-titulo="¿Eliminar «{{ p.nombre }}»?" data-verbo="Eliminar platillo"
+                    data-confirmar="El platillo se borra del catálogo. Si forma parte de un paquete, el sistema no lo permitirá.">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="boton boton--pequeno boton--peligro">Eliminar</button>
+                <button type="submit" class="boton boton--pequeno boton--peligro">Eliminar<span class="solo-lector"> {{ p.nombre }}</span></button>
               </form>
             </span>
           {% endif %}

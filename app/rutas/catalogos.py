@@ -34,7 +34,7 @@ def editar_salon(id_salon: int):
         _salones.actualizar(usuario_actual().id_usuario, id_salon, request.form)
     except ErrorDominio as error:
         flash(error.mensaje, "error")
-        return redirect(url_for("catalogos.salones", editar=id_salon))
+        return redirect(url_for("catalogos.salones", editar=id_salon, _anchor=f"salon-{id_salon}"))
     flash("Salón actualizado.", "exito")
     return redirect(url_for("catalogos.salones"))
 
@@ -70,7 +70,7 @@ def editar_platillo(id_platillo: int):
         _platillos.actualizar(id_platillo, request.form)
     except ErrorDominio as error:
         flash(error.mensaje, "error")
-        return redirect(url_for("catalogos.platillos", editar=id_platillo))
+        return redirect(url_for("catalogos.platillos", editar=id_platillo, _anchor=f"platillo-{id_platillo}"))
     flash("Platillo actualizado.", "exito")
     return redirect(url_for("catalogos.platillos"))
 

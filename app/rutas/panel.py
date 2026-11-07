@@ -15,15 +15,25 @@ from app.seguridad.decoradores import solo_gerente
 
 bp = Blueprint("panel", __name__)
 
+_MESES = ("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+_DIAS = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+
 
 @bp.get("/panel")
 @solo_gerente
 def inicio():
     with BaseDatos.transaccion() as cur:
+        usuarios = RepositorioUsuarios(cur)
+        # La fecha sale de la base: su zona horaria es la del salón (conexion.py).
+        cur.execute("SELECT CURRENT_DATE AS hoy")
+        hoy = cur.fetchone()["hoy"]
         resumen = {
             "salones": RepositorioSalones(cur).listar(),
-            "clientes": RepositorioUsuarios(cur).contar_por_rol(ROL_CLIENTE),
+            "clientes": usuarios.contar_por_rol(ROL_CLIENTE),
+            "bloqueados": usuarios.clientes_bloqueados(),
             "paquetes": RepositorioPaquetes(cur).contar(),
-            "actividad": RepositorioBitacora(cur).recientes(10),
+            # Los inicios de sesión son ruido para el gerente; siguen en la bitácora.
+            "actividad": RepositorioBitacora(cur).recientes(10, excluir=("INICIO_SESION",)),
         }
-    return render_template("panel.html", acciones=ACCIONES_BITACORA, **resumen)
+    return render_template("panel.html", acciones=ACCIONES_BITACORA, hoy=hoy,
+                           MESES=_MESES, DIAS=_DIAS, **resumen)

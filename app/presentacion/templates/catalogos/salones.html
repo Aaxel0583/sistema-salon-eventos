@@ -2,22 +2,22 @@
 {% block titulo %}Salones{% endblock %}
 {% block contenido %}
 <div class="encabezado">
-  <h1>Catálogos</h1>
   {% with activa='salones' %}{% include "catalogos/_pestanas.html" %}{% endwith %}
+  <h1>Salones</h1>
 </div>
 
 <p class="texto-suave">El salón opera con tres espacios. Puedes editar sus datos, pero no agregar uno nuevo.</p>
 
 <div class="rejilla-salones">
 {% for s in salones %}
-  <article class="panel salon {% if not s.esta_disponible %}salon--inactivo{% endif %}" aria-labelledby="salon-{{ s.id_salon }}">
+  <article class="panel salon {% if not s.esta_disponible %}salon--inactivo{% endif %}" id="salon-{{ s.id_salon }}" aria-labelledby="t-salon-{{ s.id_salon }}">
     {% if editando == s.id_salon %}
       <form method="post" action="{{ url_for('catalogos.editar_salon', id_salon=s.id_salon) }}" class="formulario" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <h2 id="salon-{{ s.id_salon }}">Editar {{ s.nombre }}</h2>
+        <h2 id="t-salon-{{ s.id_salon }}">Editar {{ s.nombre }}</h2>
 
         <label for="nombre-{{ s.id_salon }}">Nombre</label>
-        <input type="text" id="nombre-{{ s.id_salon }}" name="nombre" value="{{ s.nombre }}" maxlength="80" required>
+        <input type="text" id="nombre-{{ s.id_salon }}" name="nombre" value="{{ s.nombre }}" maxlength="80" required autofocus>
 
         <label for="desc-{{ s.id_salon }}">Descripción</label>
         <textarea id="desc-{{ s.id_salon }}" name="descripcion" maxlength="255" rows="2">{{ s.descripcion or '' }}</textarea>
@@ -45,14 +45,17 @@
         </div>
       </form>
     {% else %}
-      <h2 id="salon-{{ s.id_salon }}">{{ s.nombre }}</h2>
+      <div class="salon__titulo">
+        <h2 id="t-salon-{{ s.id_salon }}">{{ s.nombre }}</h2>
+        {% if not s.esta_disponible %}<span class="etiqueta etiqueta--gris">No disponible</span>{% endif %}
+      </div>
       {% if s.descripcion %}<p class="texto-suave">{{ s.descripcion }}</p>{% endif %}
       <dl class="datos">
         <div><dt>Capacidad</dt><dd>{{ s.capacidad_maxima }} personas</dd></div>
         <div><dt>Renta</dt><dd>${{ '{:,.2f}'.format(s.costo_renta) }}</dd></div>
         <div><dt>Estado</dt><dd>{% if s.esta_disponible %}Disponible{% else %}No disponible{% endif %}</dd></div>
       </dl>
-      <a class="boton" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}">Editar</a>
+      <a class="boton" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}#salon-{{ s.id_salon }}">Editar<span class="solo-lector"> {{ s.nombre }}</span></a>
     {% endif %}
   </article>
 {% endfor %}

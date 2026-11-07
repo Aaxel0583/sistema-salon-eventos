@@ -17,13 +17,14 @@ class RepositorioBitacora:
             (id_usuario, accion[:40], entidad[:60]),
         )
 
-    def recientes(self, limite: int = 20) -> list[dict]:
+    def recientes(self, limite: int = 20, excluir: tuple[str, ...] = ()) -> list[dict]:
         self._cur.execute(
             """SELECT b.fecha, b.accion, b.entidad, u.nombre AS usuario
                  FROM bitacora b
                  LEFT JOIN usuario u ON u.id_usuario = b.id_usuario
+                WHERE NOT (b.accion = ANY(%s))
                 ORDER BY b.fecha DESC, b.id_bitacora DESC
                 LIMIT %s""",
-            (limite,),
+            (list(excluir), limite),
         )
         return self._cur.fetchall()

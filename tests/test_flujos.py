@@ -183,3 +183,18 @@ def test_buscar_celular_con_espacios(cliente_http, crear_usuario):
     cliente_http.post("/clientes/nuevo", data={"nombre": "Celular Espacios", "correo": "", "telefono": telefono})
     legible = f"{telefono[:3]} {telefono[3:6]} {telefono[6:]}"         # como se ve en la tabla
     assert "Celular Espacios" in cliente_http.get("/clientes", query_string={"q": legible}).get_data(as_text=True)
+
+
+def test_panel_muestra_pendientes_y_oculta_inicios_de_sesion(app, crear_usuario):
+    cliente_http, gerente_http = app.test_client(), app.test_client()
+    _, correo_c, _ = crear_usuario("CLIENTE")
+    for _ in range(5):
+        _entrar(cliente_http, correo_c, "mal")                      # queda bloqueado
+    _, correo_g, clave_g = crear_usuario("GERENTE")
+    _entrar(gerente_http, correo_g, clave_g)
+
+    texto = gerente_http.get("/panel").get_data(as_text=True)
+    pendientes = texto.split('id="t-pendientes"')[1].split("</section>")[0]
+    assert "cuenta bloqueada" in pendientes and correo_c in pendientes   # enlace al directorio filtrado
+    actividad = texto.split('id="t-actividad"')[1]
+    assert "Inicio de sesión" not in actividad and "Cuenta bloqueada" in actividad

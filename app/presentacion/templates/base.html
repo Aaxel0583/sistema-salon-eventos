@@ -50,13 +50,13 @@
   </main>
 
   {# Confirmación de acciones irreversibles (form[data-confirmar], ver app.js) #}
-  <dialog id="confirmacion" class="dialogo" aria-labelledby="confirmacion-titulo">
+  <dialog id="dialogo-confirmar" class="dialogo" aria-labelledby="dialogo-confirmar-titulo" aria-describedby="dialogo-confirmar-mensaje">
     <form method="dialog">
-      <h2 id="confirmacion-titulo">¿Confirmas la acción?</h2>
-      <p data-mensaje></p>
+      <h2 id="dialogo-confirmar-titulo" data-titulo>¿Confirmas la acción?</h2>
+      <p id="dialogo-confirmar-mensaje" data-mensaje></p>
       <div class="acciones dialogo__acciones">
         <button value="no" class="boton">Cancelar</button>
-        <button value="si" class="boton boton--primario">Continuar</button>
+        <button value="si" class="boton boton--peligro-lleno" data-verbo>Continuar</button>
       </div>
     </form>
   </dialog>
