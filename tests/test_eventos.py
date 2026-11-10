@@ -325,3 +325,23 @@ def test_rf05_cliente_no_entra_a_eventos(cliente_http, crear_usuario):
         respuesta = cliente_http.get(ruta)
         assert respuesta.status_code == 302 and respuesta.location.endswith("/mis-eventos"), ruta
     assert cliente_http.post("/eventos/1/estado", data={"estado": "CANCELADO"}).location.endswith("/mis-eventos")
+
+
+def test_confirmacion_propia_por_estatus(cliente_http, gerente, crear_usuario):
+    """DESIGN.md «Modal de confirmación»: cada estatus trae su título, consecuencia y verbo;
+    el rojo queda solo para lo destructivo (cancelar). Revisión del PR #2."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    evento = _evento(_id_de(_reservar(cliente_http, id_cliente)))
+    texto = cliente_http.get(f"/eventos/{evento.id_evento}").get_data(as_text=True)
+    lista = texto.split('data-confirmar-segun>')[1].split("</select>")[0]
+    assert 'data-verbo="Confirmar evento" data-tono="primario"' in lista
+    assert 'data-verbo="Cancelar evento" data-tono="peligro" data-volver="Mantener evento"' in lista
+    assert f"¿Confirmar {evento.clave_proyecto}?" in lista
+    assert "Cambiar estatus" not in lista                                   # ya no hay verbo genérico
+
+    vencido = _evento(_insertar_directo(id_cliente, dias=-3, estado="CONFIRMADO"))
+    panel = cliente_http.get("/panel").get_data(as_text=True)
+    fila = panel.split(f'href="/eventos/{vencido.id_evento}"')[1].split("</tr>")[0]
+    assert 'data-verbo="Marcar como realizado" data-tono="primario"' in fila
+    cancelar = fila.split('data-verbo="Marcar como cancelado"')[1].split(">")[0]
+    assert "data-tono" not in cancelar                                       # rojo por omisión

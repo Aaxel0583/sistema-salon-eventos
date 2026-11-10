@@ -18,16 +18,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Confirmación antes de acciones irreversibles (regenerar clave, eliminar).
+  // Confirmación antes de acciones irreversibles (regenerar clave, eliminar, cerrar un evento).
   // Escape o "Cancelar" cierran sin enviar; el foco inicia en "Cancelar".
   // Cada formulario trae su título (data-titulo), su consecuencia (data-confirmar) y su verbo (data-verbo).
+  // Si la acción depende de una lista (p. ej. el estatus del evento), la lista lleva
+  // data-confirmar-segun y cada <option> trae sus propios textos.
+  // data-tono="primario" pinta el verbo en azul; sin él es rojo, porque DESIGN.md reserva
+  // el rojo lleno para lo destructivo (eliminar, cortar un acceso, cancelar).
+  // data-volver cambia el texto de "Cancelar" cuando chocaría con el verbo («Cancelar evento»).
   const dialogo = document.getElementById("dialogo-confirmar");
+  const verbo = dialogo.querySelector("[data-verbo]");
+  const volver = dialogo.querySelector('button[value="no"]');
   document.querySelectorAll("form[data-confirmar]").forEach((formulario) => {
     formulario.addEventListener("submit", (evento) => {
       evento.preventDefault();
-      dialogo.querySelector("[data-titulo]").textContent = formulario.dataset.titulo || "¿Confirmas la acción?";
-      dialogo.querySelector("[data-mensaje]").textContent = formulario.dataset.confirmar;
-      dialogo.querySelector("[data-verbo]").textContent = formulario.dataset.verbo || "Continuar";
+      const lista = formulario.querySelector("select[data-confirmar-segun]");
+      const fuente = lista?.selectedOptions[0]?.dataset.verbo ? lista.selectedOptions[0] : formulario;
+      dialogo.querySelector("[data-titulo]").textContent = fuente.dataset.titulo || "¿Confirmas la acción?";
+      dialogo.querySelector("[data-mensaje]").textContent = fuente.dataset.confirmar || formulario.dataset.confirmar;
+      verbo.textContent = fuente.dataset.verbo || "Continuar";
+      volver.textContent = fuente.dataset.volver || "Cancelar";
+      const azul = fuente.dataset.tono === "primario";
+      verbo.classList.toggle("boton--primario", azul);
+      verbo.classList.toggle("boton--peligro-lleno", !azul);
       dialogo.returnValue = "";
       dialogo.addEventListener("close", () => {
         if (dialogo.returnValue === "si") formulario.submit();

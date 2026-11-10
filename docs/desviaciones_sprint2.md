@@ -22,3 +22,10 @@ En esta parte la pantalla advierte el sobrecupo y deshabilita el botón, pero la
 ## Alineación con `DESIGN.md`
 
 Esta parte se construyó sobre el commit de diseño `e80db72` y sigue sus reglas: un solo azul de acción, ámbar solo para advertencias (por eso «Cotización» va en marino), confirmaciones con título, consecuencia y verbo propios, botones sin «+» como ícono, clave generada con «Copiar mensaje para el cliente» y «Ya la entregué», contexto oculto en acciones repetidas y ninguna pantalla con desplazamiento horizontal a 360 px.
+
+## Correcciones de la revisión del PR #2
+
+| # | Hallazgo | Corrección | Verificación |
+|---|---|---|---|
+| R-01 | Al cambiar el estatus en la ficha, el diálogo era genérico («¿Cambiar el estatus…?») y su botón rojo decía «Cambiar estatus» aunque se estuviera confirmando el evento. Contradecía el PR y DESIGN.md («Modal de confirmación»: título y verbo propios; rojo lleno solo para lo destructivo). | Cada opción del estatus trae su título, consecuencia, verbo y tono: «Confirmar evento» y «Marcar como realizado» en azul; «Cancelar evento» en rojo. En el panel, «Se realizó» confirma en azul y «Se canceló» en rojo. El diálogo (`app.js`) toma los textos de la opción elegida (`data-confirmar-segun`) y el color de `data-tono`; sin tono sigue en rojo, así que las confirmaciones del Sprint 1 no cambian. | `test_eventos::test_confirmacion_propia_por_estatus` y revisión en navegador de los cinco diálogos (color real del botón y que «Cancelar» no envía nada). |
+| R-02 | En el diálogo de cancelación quedaban juntos «Cancelar» y «Cancelar evento». | El botón de salida dice «Mantener evento» en ese caso (`data-volver`); el foco inicia en él. | Misma prueba y revisión en navegador. |

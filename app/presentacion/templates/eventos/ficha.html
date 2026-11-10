@@ -50,16 +50,31 @@
     <h2 id="t-gestion">Gestión</h2>
 
     <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=evento.id_evento) }}" class="formulario-linea"
-          {% if siguientes %}data-titulo="¿Cambiar el estatus de {{ evento.clave_proyecto }}?" data-verbo="Cambiar estatus"
-          data-confirmar="El cambio queda en la bitácora. Si eliges Realizado o Cancelado, el evento cierra su ciclo y su estatus ya no podrá cambiar."{% endif %}>
+          {% if siguientes %}data-confirmar="El cambio de estatus queda en la bitácora."{% endif %}>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="campo">
         <label for="estado">Estatus</label>
         {% if siguientes %}
-          <select id="estado" name="estado" required>
+          {# Cada estatus confirma con su propio título, consecuencia y verbo (DESIGN.md «Modal de confirmación»).
+             Solo Cancelado es destructivo y va en rojo; confirmar y marcar realizado van en azul. #}
+          {% set c = evento.clave_proyecto %}
+          {% set confirmaciones = {
+            'CONFIRMADO': ('¿Confirmar ' ~ c ~ '?',
+                           'El cliente aceptó la cotización. El evento pasa a confirmado y su saldo se suma a lo que está por cobrar.',
+                           'Confirmar evento', 'primario', 'Cancelar'),
+            'REALIZADO':  ('¿' ~ c ~ ' se realizó?',
+                           'El evento quedará como realizado y cerrará su ciclo: su estatus ya no podrá cambiar.',
+                           'Marcar como realizado', 'primario', 'Cancelar'),
+            'CANCELADO':  ('¿Cancelar ' ~ c ~ '?',
+                           'El evento quedará como cancelado, dejará de contar en la ocupación del salón y cerrará su ciclo: su estatus ya no podrá cambiar.',
+                           'Cancelar evento', 'peligro', 'Mantener evento'),
+          } %}
+          <select id="estado" name="estado" required data-confirmar-segun>
             <option value="">Elige el nuevo estatus</option>
             {% for codigo in siguientes %}
-              <option value="{{ codigo }}">{{ estados[codigo] }}</option>
+              {% set titulo, consecuencia, verbo, tono, volver = confirmaciones[codigo] %}
+              <option value="{{ codigo }}" data-titulo="{{ titulo }}" data-confirmar="{{ consecuencia }}"
+                      data-verbo="{{ verbo }}" data-tono="{{ tono }}" data-volver="{{ volver }}">{{ estados[codigo] }}</option>
             {% endfor %}
           </select>
         {% else %}

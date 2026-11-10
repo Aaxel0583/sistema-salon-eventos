@@ -79,7 +79,7 @@
               <td class="tabla__accion">
                 <div class="acciones-linea">
                   <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=e.id_evento) }}"
-                        data-titulo="¿{{ e.clave_proyecto }} se realizó?" data-verbo="Marcar como realizado"
+                        data-titulo="¿{{ e.clave_proyecto }} se realizó?" data-verbo="Marcar como realizado" data-tono="primario"
                         data-confirmar="El evento quedará como realizado y cerrará su ciclo: su estatus ya no podrá cambiar.">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="estado" value="REALIZADO">
