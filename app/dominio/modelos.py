@@ -380,6 +380,7 @@ class OcupacionSalon:
     mayor_aforo: int
     ocupacion_promedio: int
     disponible: str = "S"
+    cotizaciones_proximas: int = 0    # D-20: aún no apartan el salón; se muestran aparte
 
     @classmethod
     def desde_fila(cls, fila: dict) -> "OcupacionSalon":

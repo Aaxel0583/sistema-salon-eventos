@@ -145,7 +145,7 @@ def test_portal_exige_sesion_de_cliente(cliente_http, crear_usuario, dos_cliente
 
 def test_estados_del_evento_en_el_portal(cliente_http, crear_usuario):
     """Sin eventos se orienta al cliente; un evento cancelado no muestra saldo por cobrar;
-    los eventos pasados van aparte de los próximos."""
+    los eventos pasados van aparte de los próximos, y los cancelados en su propia sección."""
     id_cliente, correo, clave = crear_usuario("CLIENTE")
     _entrar(cliente_http, correo, clave)
     vacio = cliente_http.get("/mis-eventos").get_data(as_text=True)
@@ -154,13 +154,14 @@ def test_estados_del_evento_en_el_portal(cliente_http, crear_usuario):
     _evento_de(id_cliente, "Evento cancelado", estado="CANCELADO")
     texto = cliente_http.get("/mis-eventos").get_data(as_text=True)
     assert "Evento cancelado" in texto and "Cancelado" in texto and "Saldo pendiente" not in texto
-    assert "Próximos" in texto and "Anteriores" not in texto
+    assert "Cancelados" in texto and "Próximos" not in texto and "Anteriores" not in texto
 
     with BaseDatos.transaccion() as cur:
         hoy = RepositorioEventos(cur).hoy()
     _evento_de(id_cliente, "Evento de ayer", estado="CONFIRMADO", dia=hoy.replace(year=hoy.year - 3))
     texto = cliente_http.get("/mis-eventos").get_data(as_text=True)
-    assert "Anteriores" in texto and re.search(r"Próximos.*Evento cancelado.*Anteriores.*Evento de ayer", texto, re.S)
+    assert "Próximos" not in texto
+    assert re.search(r"Anteriores.*Evento de ayer.*Cancelados.*Evento cancelado", texto, re.S)
 
 
 def test_liquidado_cuando_el_saldo_llega_a_cero(cliente_http, crear_usuario):

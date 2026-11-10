@@ -299,12 +299,14 @@ def test_ib10_ocupacion_cuenta_solo_eventos_proximos_vigentes(crear_usuario):
             return {o.id_salon: o for o in RepositorioEventos(cur).ocupacion_por_salon()}
 
     antes = ocupacion()[1]
-    _insertar_directo(id_cliente, dias=1200, id_salon=1, asistentes=125)
+    _insertar_directo(id_cliente, dias=1200, id_salon=1, asistentes=125, estado="CONFIRMADO")
+    _insertar_directo(id_cliente, dias=1202, id_salon=1, asistentes=240)      # cotización: aparte (D-20)
     _insertar_directo(id_cliente, dias=1201, id_salon=1, estado="CANCELADO")   # no cuenta
-    _insertar_directo(id_cliente, dias=-30, id_salon=1)                       # pasado: no cuenta
+    _insertar_directo(id_cliente, dias=-30, id_salon=1, estado="CONFIRMADO")  # pasado: no cuenta
     despues = ocupacion()[1]
     assert despues.eventos_proximos == antes.eventos_proximos + 1
-    assert despues.mayor_aforo >= 125
+    assert despues.cotizaciones_proximas == antes.cotizaciones_proximas + 1
+    assert despues.mayor_aforo >= 125 and despues.mayor_aforo < 240               # la cotización no pesa
 
 
 def test_indicadores_del_tablero(crear_usuario):

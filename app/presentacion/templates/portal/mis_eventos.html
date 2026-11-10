@@ -9,7 +9,7 @@
 </div>
 
 {% if lista.eventos %}
-  {% for titulo, grupo in (("Próximos", lista.proximos), ("Anteriores", lista.anteriores)) if grupo %}
+  {% for titulo, grupo in (("Próximos", lista.proximos), ("Anteriores", lista.anteriores), ("Cancelados", lista.cancelados)) if grupo %}
     <section class="grupo-eventos" aria-labelledby="t-grupo-{{ loop.index }}">
       <h2 id="t-grupo-{{ loop.index }}">{{ titulo }}</h2>
       <ul class="eventos-cliente">

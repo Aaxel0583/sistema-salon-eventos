@@ -98,5 +98,7 @@ class TestPortal:
         hoy = date(2026, 11, 10)
         pasado = _evento(time(10), time(12), id_evento=1, dia=date(2026, 11, 9))
         de_hoy = _evento(time(10), time(12), id_evento=2, dia=hoy)
-        lista = EventosDelCliente([de_hoy, pasado], hoy)
+        cancelado = _evento(time(10), time(12), estado="CANCELADO", id_evento=3, dia=date(2026, 12, 1))
+        lista = EventosDelCliente([de_hoy, pasado, cancelado], hoy)
         assert lista.proximos == [de_hoy] and lista.anteriores == [pasado]      # el de hoy aún es próximo
+        assert lista.cancelados == [cancelado]                                  # aunque su fecha no haya llegado

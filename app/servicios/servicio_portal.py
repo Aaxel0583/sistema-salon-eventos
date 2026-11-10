@@ -20,7 +20,7 @@ from app.datos.conexion import BaseDatos
 from app.datos.errores import ErrorNoEncontrado
 from app.datos.repositorio_catalogos import RepositorioPaquetes
 from app.datos.repositorio_eventos import RepositorioEventos
-from app.dominio.modelos import Evento, Pago, Paquete
+from app.dominio.modelos import ESTADO_CANCELADO, Evento, Pago, Paquete
 
 _PATRON_CLAVE = re.compile(r"EVT-\d{4}-\d{4}")       # RN-08
 _NO_ES_TUYO = "No encontramos ese evento entre los tuyos."
@@ -34,11 +34,20 @@ class EventosDelCliente:
 
     @property
     def proximos(self) -> list[Evento]:
-        return [e for e in self.eventos if e.fecha_evento >= self.hoy]
+        return [e for e in self.eventos if not self._cancelado(e) and e.fecha_evento >= self.hoy]
 
     @property
     def anteriores(self) -> list[Evento]:
-        return [e for e in self.eventos if e.fecha_evento < self.hoy]
+        return [e for e in self.eventos if not self._cancelado(e) and e.fecha_evento < self.hoy]
+
+    @property
+    def cancelados(self) -> list[Evento]:
+        """Van aparte: un evento cancelado ya no se va a realizar, aunque su fecha no haya llegado."""
+        return [e for e in self.eventos if self._cancelado(e)]
+
+    @staticmethod
+    def _cancelado(evento: Evento) -> bool:
+        return evento.estado == ESTADO_CANCELADO
 
 
 @dataclass
