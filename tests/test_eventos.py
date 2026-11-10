@@ -2,18 +2,18 @@
 Sprint 2 · Parte 1 · Motor de reservas y tablero (HU-005, HU-006).
 Casos del SRS Anexo C: CP-07, CP-08, CP-09, CP-24 y la parte de CP-19 que
 no depende del aforo (atomicidad del alta conjunta, DA-05).
-CP-10, CP-11, CP-12 y CP-19 completo se prueban con HU-007 (Parte 2).
+CP-10, CP-11, CP-12 y CP-19 completo están en test_disponibilidad.py (HU-007, Parte 2).
 """
 import re
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 
 import psycopg
 import pytest
 
 from app.datos.conexion import BaseDatos
 from app.datos.repositorio_eventos import RepositorioEventos
-from tests.conftest import correo_unico, telefono_unico
+from tests.conftest import correo_unico, fecha_libre, telefono_unico
 
 pytestmark = pytest.mark.integracion
 
@@ -32,7 +32,7 @@ def gerente(cliente_http, crear_usuario):
 
 def _fecha_futura() -> str:
     """Una fecha distinta por prueba, para no chocar con los traslapes de HU-007."""
-    return (date.today() + timedelta(days=400 + uuid.uuid4().int % 3000)).isoformat()
+    return fecha_libre().isoformat()
 
 
 def _consulta(sql, parametros=()):
@@ -109,11 +109,12 @@ def test_cp08_clave_formato_consecutivo_e_inmutable(conexion):
         (correo_unico("cp08"),)).fetchone()["id_usuario"]
     insertar = """INSERT INTO evento (clave_proyecto, id_cliente, id_salon, id_paquete, fecha_evento,
                                       hora_inicio, hora_fin, num_asistentes, costo_total)
-                  VALUES (%s, %s, 1, 1, CURRENT_DATE + 900, '10:00', '12:00', 10, 0)
+                  VALUES (%s, %s, 1, 1, CURRENT_DATE + 900, %s, %s, 10, 0)
                   RETURNING clave_proyecto, costo_total"""
     # La clave y el costo que mande el INSERT se ignoran: los asigna la base (DA-01).
-    primera = conexion.execute(insertar, ("EVT-1999-0001", cliente)).fetchone()
-    segunda = conexion.execute(insertar, ("X", cliente)).fetchone()
+    # Horarios contiguos: el segundo evento no se traslapa con el primero (RF-27).
+    primera = conexion.execute(insertar, ("EVT-1999-0001", cliente, "10:00", "12:00")).fetchone()
+    segunda = conexion.execute(insertar, ("X", cliente, "12:00", "14:00")).fetchone()
     assert re.fullmatch(rf"EVT-{anio}-\d{{4}}", primera["clave_proyecto"])
     assert int(segunda["clave_proyecto"][-4:]) == int(primera["clave_proyecto"][-4:]) + 1
     assert primera["costo_total"] > 0

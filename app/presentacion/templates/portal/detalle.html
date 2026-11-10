@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{# IU-10 · Detalle del evento · SDD Figura 36 · C-07 · HU-008 · RF-40
+   Resumen del evento, menú del paquete contratado, pagos y saldo.
+   Solo lectura: sin acciones de modificación. El evento ya llegó filtrado por
+   el titular de la sesión (RF-39, RNF-06); aquí no se decide quién puede verlo. #}
+{% block titulo %}{{ evento.titulo }}{% endblock %}
+{% block contenido %}
+<div class="encabezado cabecera-evento">
+  <div>
+    <p class="cabecera-evento__miga"><a href="{{ url_for('portal.mis_eventos') }}">Mis eventos</a></p>
+    <h1>{{ evento.titulo }}</h1>
+  </div>
+  <div class="cabecera-evento__estado">
+    {% with e = evento %}{% include "eventos/_estado.html" %}{% endwith %}
+  </div>
+</div>
+
+<div class="dos-columnas">
+  <section class="panel" aria-labelledby="t-datos">
+    <h2 id="t-datos">Tu evento</h2>
+    <dl class="datos">
+      <div><dt>Clave</dt><dd class="cifra">{{ evento.clave_proyecto }}</dd></div>
+      <div><dt>Salón</dt><dd>{{ evento.nombre_salon }}</dd></div>
+      <div><dt>Fecha</dt><dd class="cifra">{{ evento.fecha_evento|fecha }}</dd></div>
+      <div><dt>Horario</dt><dd class="cifra">{{ evento.horario }}</dd></div>
+      <div><dt>Invitados</dt><dd class="cifra">{{ evento.num_asistentes }}</dd></div>
+      {% if evento.nombre_gerente %}<div><dt>Te atiende</dt><dd>{{ evento.nombre_gerente }}</dd></div>{% endif %}
+    </dl>
+  </section>
+
+  <section class="panel panel--suave" aria-labelledby="t-cuenta">
+    <h2 id="t-cuenta">Estado de cuenta</h2>
+    <dl class="datos">
+      <div><dt>Costo total</dt><dd class="cifra">{{ evento.costo_total|moneda }}</dd></div>
+      <div><dt>Pagado</dt><dd class="cifra cifra--verde">{{ evento.total_pagado|moneda }}</dd></div>
+      <div class="datos__total"><dt>Saldo pendiente</dt>
+        <dd class="cifra {{ 'cifra--ambar' if evento.saldo > 0 and evento.estado != 'CANCELADO' else ('cifra--verde' if evento.saldo <= 0) }}">{{ evento.saldo|moneda }}</dd></div>
+    </dl>
+    {% if evento.esta_finiquitado %}
+      <p class="nota">Tu evento quedó liquidado{% if evento.fecha_finiquito %} el {{ evento.fecha_finiquito|fecha }}{% endif %}.</p>
+    {% elif evento.estado == 'CANCELADO' %}
+      <p class="nota">El evento está cancelado. Si tienes dudas sobre tus pagos, comunícate con el salón.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="dos-columnas">
+  <section class="panel" aria-labelledby="t-menu">
+    <h2 id="t-menu">Menú contratado{% if paquete %} · {{ paquete.nombre }}{% endif %}</h2>
+    {% if paquete and paquete.platillos %}
+      <dl class="menu">
+        {% for categoria, lista in paquete.menu().items() %}
+          <div><dt>{{ lista[0].categoria_legible }}</dt><dd>{{ lista|map(attribute='nombre')|join(', ') }}</dd></div>
+        {% endfor %}
+      </dl>
+      <p class="nota menu__precio"><span class="cifra">{{ paquete.precio_persona|moneda }}</span> por persona</p>
+    {% else %}
+      <p class="texto-suave">Tu evento no tiene paquete de banquete.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="t-pagos">
+    <h2 id="t-pagos">Pagos</h2>
+    {% if pagos %}
+      <div class="tabla-desplazable">
+        <table class="tabla tabla--tarjetas">
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Forma de pago</th>
+              <th scope="col">Referencia</th>
+              <th scope="col" class="numero">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in pagos %}
+              <tr>
+                <td class="cifra tabla__titulo">{{ p.fecha_pago|fecha }}</td>
+                <td data-etiqueta="Forma de pago">{{ p.tipo_legible }}</td>
+                <td data-etiqueta="Referencia">{{ p.referencia or '—' }}</td>
+                <td class="cifra numero tabla__estado">{{ p.monto|moneda }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="texto-suave">Aún no hay pagos registrados.</p>
+    {% endif %}
+  </section>
+</div>
+
+<p class="nota">Si algo no coincide con lo que acordaste, comunícate con el salón.</p>
+{% endblock %}

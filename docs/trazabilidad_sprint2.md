@@ -1,6 +1,6 @@
-# Registro de trazabilidad · Sprint 2 · Parte 1
+# Registro de trazabilidad · Sprint 2
 
-Complementa el entregable *Traceability Record* (ISO/IEC 29110, SI) con el código: HU → RF/RN → elemento de diseño → archivo → prueba. Cubre HU-005 y HU-006; HU-007 y HU-008 se agregan en la Parte 2.
+Complementa el entregable *Traceability Record* (ISO/IEC 29110, SI) con el código: HU → RF/RN → elemento de diseño → archivo → prueba. Cubre HU-005 a HU-008.
 
 | HU | Requisito | Diseño | Implementación | Prueba |
 |---|---|---|---|---|
@@ -20,10 +20,23 @@ Complementa el entregable *Traceability Record* (ISO/IEC 29110, SI) con el códi
 | HU-006 | Indicadores de ocupación por salón | IB-10 · IU-03 | `04_eventos_sprint2.sql::vw_ocupacion_salon` · `panel.html` | `test_eventos::test_ib10_...` |
 | HU-006 | Aviso de eventos por cerrar · RN-14 · DA-04 | IB-11 · IU-03 · Escenario 8 | `vw_pendientes_cierre` · `panel.html` (botones «Se realizó» / «Se canceló») | `test_eventos::test_tablero_pendientes_...` |
 | HU-006 | Indicadores del tablero | IB-01 · IU-03 | `vw_evento_detalle` · `repositorio_eventos.py::indicadores` | `test_eventos::test_indicadores_...` |
+| HU-007 | RF-24 consulta de agenda del salón en la fecha capturada | C-04 · `/api/agenda` · índice `ix_evento_salon_fecha` | `repositorio_eventos.py::agenda` · `servicio_eventos.py::ServicioReservaciones.agenda`, `Agenda` · `rutas/agenda.py` · bloque `data-agenda` de `eventos/nuevo.html` y `app.js` | `test_disponibilidad::test_cp11_...` (CP-11) · `test_rf24_...` · `test_unitarias_disponibilidad::TestAgenda` |
+| HU-007 | RF-25 rechazo por sobrecupo con ambos valores · RN-01 | C-11 · IB-02 · BF001 · DA-01 | `05_reglas_sprint2.sql::fn_validar_aforo`, `trg_evento_aforo` | `test_disponibilidad::test_cp10_bd_...`, `test_cp10_pantalla_...` (CP-10) · `test_bf001_...` |
+| HU-007 | RF-26 rechazo por traslape · RN-02 | C-11 · IB-03 · BF002 · DA-01 | `05_reglas_sprint2.sql::fn_validar_disponibilidad`, `trg_evento_disponibilidad` | `test_disponibilidad::test_cp11_bd_...` (CP-11) · `test_bf002_...` · `test_rn02_...` |
+| HU-007 | RF-27 dos eventos el mismo día sin traslape | IB-03 | `fn_validar_disponibilidad` (horarios contiguos permitidos) | `test_disponibilidad::test_cp12_...` (CP-12) |
+| HU-007 | Las reglas se aplican en la base (criterio de aceptación) · RNF-09 | DA-01 · Escenario 5, Figura 8 | Triggers `BEFORE INSERT OR UPDATE` sobre EVENTO; candado por salón compartido con IB-05 | Pruebas `_bd_` por SQL directo · `test_bf002_dos_reservas_simultaneas_...` |
+| HU-007 | Mensaje de rechazo con causa y valores · RNF-12 | C-10 traducción de errores | `datos/errores.py::traducir_error` (códigos BF) · aviso rojo en IU-06 | `test_cp10_pantalla_...` · `test_cp11_agenda_...` |
+| HU-007 | RF-12 atomicidad del alta conjunta ante un rechazo de aforo · RNF-08 | DA-05 · Escenario 2 | `servicio_eventos.py::registrar` (una sola transacción) | `test_disponibilidad::test_cp19_...` (CP-19) |
+| HU-008 | RF-39 solo los eventos del titular autenticado | C-07 · IU-09 · Escenario 7, Figura 10 | `repositorio_eventos.py::de_cliente` · `servicio_portal.py::ServicioPortal.mis_eventos` · `rutas/portal.py` · `portal/mis_eventos.html` | `test_portal::test_cp13_cliente_ve_solo_sus_eventos` (CP-13) |
+| HU-008 | RF-40 detalle con menú, pagos y saldo | C-07 · IU-10 · vista IB-01 · tabla PAGO | `repositorio_eventos.py::por_clave_de_cliente`, `pagos` · `servicio_portal.py::detalle` · `dominio/modelos.py::Pago` · `portal/detalle.html` | `test_portal::test_cp13_detalle_...` (CP-13) |
+| HU-008 | Impide consultar el evento de otro cliente · RNF-06 | Filtro por titular tomado de la sesión (C-01) | `rutas/portal.py` (`usuario_actual()`), consulta con clave **y** titular | `test_portal::test_cp13_evento_ajeno_...` (CP-13) · `test_claves_mal_formadas_...` |
+| HU-007/008 | RF-05 la agenda es del gerente y el portal del cliente | Decoradores `solo_gerente`, `solo_cliente` | `rutas/agenda.py` · `rutas/portal.py` | `test_rf05_la_agenda_...` · `test_portal_exige_sesion_...` |
 | HU-005/006 | RF-41 bitácora de alta, estatus y responsable | BITACORA | `ALTA_EVENTO`, `CAMBIO_ESTATUS`, `ASIGNAR_GERENTE` | `test_eventos::test_cp07_...` · `test_cp24_...` (CP-23 parcial) |
 | HU-005/006 | RF-05 solo el gerente gestiona eventos · RNF-06 | Decorador `solo_gerente` | `rutas/eventos.py` | `test_eventos::test_rf05_...` |
 
 Requisitos no funcionales atendidos en esta parte: RNF-01 (cotización en el navegador), RNF-05 (filtros como fragmentos fijos con parámetros), RNF-06, RNF-08, RNF-09 (clave y costo en la base), RNF-12 (rechazos con valores), RNF-13 (panel, listado, reservación, ficha y directorio verificados a 360 px sin desplazamiento horizontal).
+
+En la Parte 2: RNF-02 (agenda apoyada en el índice de salón y fecha), RNF-05, RNF-06 (titular desde la sesión), RNF-08 (CP-19), RNF-09 (reglas en la base), RNF-12 (rechazos con salón, fecha, horario, clave y cifras) y RNF-13 (reservación con agenda, Mis eventos y Detalle verificados a 360 px).
 
 ## Casos del SRS, Anexo C
 
@@ -33,8 +46,11 @@ Requisitos no funcionales atendidos en esta parte: RNF-01 (cotización en el nav
 | CP-08 Clave de proyecto | Automatizado y aprobado |
 | CP-09 Filtrado del listado | Automatizado y aprobado |
 | CP-24 Estatus y gerente responsable | Automatizado y aprobado |
-| CP-19 Atomicidad del alta conjunta | Parcial: se prueba con un rechazo de paquete. Con el aforo (BF001) en la Parte 2 |
-| CP-10, CP-11, CP-12 | Parte 2 (HU-007) |
+| CP-10 Rechazo por sobrecupo | Automatizado y aprobado (SQL directo y pantalla) |
+| CP-11 Rechazo por traslape | Automatizado y aprobado (SQL directo, agenda y pantalla) |
+| CP-12 Horarios contiguos | Automatizado y aprobado |
+| CP-13 Evento propio y aislamiento entre clientes | Automatizado y aprobado |
+| CP-19 Atomicidad del alta conjunta | Automatizado y aprobado con el rechazo de aforo BF001 |
 | CP-23 Bitácora | Parcial: alta y cambio de estatus. El registro de pago llega en el Sprint 3 |
 
-Resultado: 91 pruebas aprobadas (52 del Sprint 1, incluida la del panel del commit de diseño, y 39 nuevas).
+Resultado: 143 pruebas aprobadas (52 del Sprint 1, 39 de la Parte 1 y 52 de la Parte 2).

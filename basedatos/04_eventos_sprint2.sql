@@ -9,8 +9,8 @@
 -- IB-11  Pendientes de cierre (vista) . RN-14 · DA-04 · HU-006 · IU-03
 --
 -- Las validaciones de aforo (IB-02, BF001) y de traslape de horario
--- (IB-03, BF002) corresponden a HU-007 y se agregan en el script 05
--- (Sprint 2 · Parte 2).
+-- (IB-03, BF002) corresponden a HU-007 y están en el script 05
+-- (05_reglas_sprint2.sql, Sprint 2 · Parte 2).
 --
 -- Decisión DA-01: la clave y el costo los asigna la base. Aunque el
 -- evento se inserte por SQL directo, la clave sigue el formato y el

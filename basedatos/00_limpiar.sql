@@ -14,4 +14,6 @@ DROP FUNCTION IF EXISTS fn_asignar_clave_proyecto() CASCADE;
 DROP FUNCTION IF EXISTS fn_clave_proyecto_inmutable() CASCADE;
 DROP FUNCTION IF EXISTS fn_calcular_costo_evento() CASCADE;
 DROP FUNCTION IF EXISTS fn_cotizar(INTEGER, INTEGER, INTEGER) CASCADE;
+DROP FUNCTION IF EXISTS fn_validar_aforo() CASCADE;
+DROP FUNCTION IF EXISTS fn_validar_disponibilidad() CASCADE;
 COMMIT;

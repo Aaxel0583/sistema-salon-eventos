@@ -1,6 +1,6 @@
-# Desviaciones del Sprint 2 · Parte 1 respecto a la línea base
+# Desviaciones del Sprint 2 respecto a la línea base
 
-Continúa la numeración de `desviaciones_sprint1.md`. Conforme al Plan §11 e ISO/IEC 29110 (*Change Request* y *Correction Register*), cada una debe registrarse antes del cierre del sprint. Las marcadas «validar con el cliente» precisan reglas que el SRS deja abiertas.
+Parte 1 (HU-005, HU-006): D-10 a D-19. Parte 2 (HU-007, HU-008): D-20 a D-27. Continúa la numeración de `desviaciones_sprint1.md`. Conforme al Plan §11 e ISO/IEC 29110 (*Change Request* y *Correction Register*), cada una debe registrarse antes del cierre del sprint. Las marcadas «validar con el cliente» precisan reglas que el SRS deja abiertas.
 
 | # | Documento y apartado | Lo que dice la línea base | Lo que hace el código | Justificación | Acción sugerida |
 |---|---|---|---|---|---|
@@ -15,9 +15,24 @@ Continúa la numeración de `desviaciones_sprint1.md`. Conforme al Plan §11 e I
 | D-18 | SDD Anexo A | `/eventos/<id>` con GET y POST, sin decir qué hace el POST | El POST asigna el gerente responsable (RF-29) | Se mantiene dentro del catálogo de rutas en vez de crear una ruta nueva | Correction Register |
 | D-19 | Cronograma / Plan Anexo A | Sprint 2 del 23 de octubre al 5 de noviembre | Parte 1 terminada el 6 de noviembre; Parte 2 pendiente | Arrastre del inicio tardío del Sprint 1 (D-09) | Progress Status Record · registrar la variación y el plan de recuperación antes del cierre del 20 de noviembre |
 
-## Hueco temporal entre la Parte 1 y la Parte 2
+## Parte 2 · HU-007 y HU-008
 
-En esta parte la pantalla advierte el sobrecupo y deshabilita el botón, pero la base todavía no rechaza un evento que exceda el aforo o que se traslape: eso lo hacen los triggers BF001 y BF002 de HU-007 (DA-01). Por eso la rama de esta parte **no debe fusionarse a `main`** ni desplegarse para el cliente hasta terminar la Parte 2; sí puede fusionarse a `develop`.
+| # | Documento y apartado | Lo que dice la línea base | Lo que hace el código | Justificación | Acción sugerida |
+|---|---|---|---|---|---|
+| D-20 | SRS RN-02, RF-26 | Traslape contra «otro evento vigente»; solo aclara que un cancelado no ocupa el salón | Ocupa el salón todo evento **no cancelado**: cotización, confirmado o realizado. Una cotización aparta el horario | Coincide con BF004, que ya trataba la cotización como agendada, y un evento realizado ocupó físicamente el salón | **Validar con el cliente**: ¿una cotización debe apartar la fecha? · precisar RN-02 |
+| D-21 | SRS RN-01, SDD IB-02 | El aforo no se excede, sin decir cuándo se evalúa | BF001 se evalúa al registrar y al cambiar salón o asistentes; **no** al cambiar el estatus | RN-04 permite bajar la capacidad cuando el evento grande ya pasó; cerrar ese evento como realizado no debe fallar | Correction Register · precisar IB-02 |
+| D-22 | SDD IB-05 (script 02, Sprint 1) | Trigger de reducción de capacidad, línea base del Release 1 | Se le agregó un candado por salón que comparte con IB-02 e IB-03 | Sin él, una reserva y una reducción de capacidad simultáneas podían dejar un evento con sobrecupo, contra el objetivo de 0 % | Correction Register · las bases instaladas vuelven a ejecutar el script 02 |
+| D-23 | SDD Anexo A, `/api/agenda` | «Alimenta la consulta de agenda y la cotización en vivo» | Solo entrega la agenda (`salon`, `fecha` y, opcionales, `inicio` y `fin`). La cotización en vivo se calcula en el navegador | RNF-01: la cotización no debe esperar al servidor; así quedó desde la Parte 1 | Correction Register · corregir la descripción de la ruta |
+| D-24 | SDD §4.1, Figura 3 | La clase Pago pertenece al módulo financiero (Sprint 3) | Se adelantó en modo de **solo lectura** para el portal | RF-40 (Sprint 2) pide mostrar los pagos al cliente. El registro de abonos (IB-06, BF005) sigue en el Sprint 3 | Correction Register |
+| D-25 | SDD IU-09 e IU-10, Figuras 35 y 36 | Lista de eventos con clave, fecha y estatus; detalle con resumen, menú, pagos y saldo | La lista son tarjetas separadas en «Próximos» y «Anteriores»; el detalle agrega «Te atiende» (gerente responsable) | Sigue `DESIGN.md`: el cliente consulta desde el celular y una tabla no cabe en 360 px | Correction Register · actualizar las Figuras 35 y 36 |
+| D-26 | SRS CP-13 | El evento ajeno «se niega y el sistema lo devuelve a su propio panel» | Además, un evento ajeno y uno inexistente responden exactamente igual | No revelar qué claves existen (RNF-06) | Ninguna: precisa el caso de prueba |
+| D-27 | Cronograma / Plan Anexo A | Sprint 2 del 23 de octubre al 5 de noviembre | Parte 2 terminada el 10 de noviembre: 5 días después de lo planeado | Arrastre de D-09 y D-19 | Progress Status Record · registrar la fecha real y el plan de recuperación del Sprint 3 |
+
+## Cierre del hueco entre la Parte 1 y la Parte 2
+
+La Parte 1 advertía el sobrecupo en pantalla pero la base aún no lo rechazaba. Con el script `05_reglas_sprint2.sql` las reglas RN-01 y RN-02 ya se imponen en la base, por lo que el Release 2 puede fusionarse a `main` y etiquetarse.
+
+Al instalar el script 05 sobre una base con datos de la Parte 1, el instalador avisa cuántos eventos vigentes exceden el aforo o se enciman. No los modifica: el gerente debe corregirlos.
 
 ## Alineación con `DESIGN.md`
 

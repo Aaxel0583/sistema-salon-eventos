@@ -5,7 +5,10 @@
    La cotización se recalcula en el navegador con los precios que ya vienen en
    las opciones (RNF-01: sin recargar ni consultar al servidor). El costo que
    vale es el que calcula la base al guardar (RN-09, trg_evento_costo).
-   La consulta de agenda (RF-24) y los rechazos BF001/BF002 llegan con HU-007. #}
+   HU-007 · RF-24: al elegir salón y fecha se consulta /api/agenda y se listan
+   los eventos ya programados; si el horario se encima, se avisa antes de guardar.
+   La agenda solo orienta: quien rechaza es la base, con BF001 (aforo) y BF002
+   (traslape), y ese rechazo llega aquí como aviso rojo con los valores (RNF-12). #}
 {% block titulo %}Nueva reservación{% endblock %}
 {% block contenido %}
 {% set nuevo = datos.cliente_nuevo == 'S' or not clientes %}
@@ -116,6 +119,17 @@
     {# Avisos en vivo (Anexo C del SDD): rojo = regla violada, el botón se deshabilita. #}
     <div class="aviso aviso--error" role="alert" data-aviso-aforo hidden></div>
     <div class="aviso aviso--error" role="alert" data-aviso-horario hidden></div>
+    <div class="aviso aviso--error" role="alert" data-aviso-traslape hidden></div>
+
+    {# RF-24 · Agenda del salón en la fecha capturada. La llena app.js; sin JavaScript
+       no aparece y la regla se sigue cumpliendo al guardar. Ámbar = agenda ocupada
+       (advertencia que no impide continuar, SDD Anexo C). #}
+    <section class="agenda-dia" aria-labelledby="t-agenda" aria-live="polite"
+             data-agenda data-url="{{ url_for('agenda.consultar') }}" hidden>
+      <h2 id="t-agenda" data-agenda-titulo>Agenda del salón</h2>
+      <p class="agenda-dia__estado" data-agenda-estado></p>
+      <ul class="agenda-dia__lista" data-agenda-lista></ul>
+    </section>
   </div>
 
   {# ---------------- Panel de cotización (RF-21, RF-23) ---------------- #}

@@ -9,11 +9,12 @@ operaciones de estas clases sirven para presentar información, no para
 autorizar cambios.
 
 Sprint 1: Usuario, Salon, Platillo y Paquete.
-Sprint 2: Evento (HU-005, HU-006) y OcupacionSalon (IB-10).
-Sprint 3: Pago se agrega en este mismo módulo.
+Sprint 2: Evento (HU-005, HU-006), OcupacionSalon (IB-10) y Pago en modo de
+          solo lectura, para el portal del cliente (HU-008).
+Sprint 3: el registro de pagos (IB-06, HU-009) completa la clase Pago.
 """
 from dataclasses import dataclass, field
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 
 # ---------------------------------------------------------------------
@@ -272,6 +273,19 @@ class Evento:
     def contacto_cliente(self) -> str:
         return unir_contacto(self.correo_cliente, self.telefono_cliente)
 
+    @property
+    def ocupa_salon(self) -> bool:
+        """RN-02: un evento cancelado no ocupa el salón."""
+        return self.estado != ESTADO_CANCELADO
+
+    def se_traslapa(self, inicio: time, fin: time) -> bool:
+        """
+        ¿Este evento se encima con el horario [inicio, fin)? Los horarios
+        contiguos no se traslapan (RF-27). Sirve para pintar la agenda de
+        IU-06 (RF-24); quien autoriza o rechaza es el trigger IB-03.
+        """
+        return self.ocupa_salon and self.hora_inicio < fin and inicio < self.hora_fin
+
     def pendiente_de_cierre(self, hoy: date) -> bool:
         """IB-11 · RN-14: la fecha pasó y nadie ha dicho si se realizó."""
         return self.esta_abierto and self.fecha_evento < hoy
@@ -313,6 +327,30 @@ class Evento:
             return ("La fecha del evento ya pasó: indica si se realizó o se canceló.")
         return (f"Un evento en {self.estado_legible.lower()} no puede pasar a "
                 f"{ESTADOS_EVENTO.get(nuevo, nuevo).lower()}.")
+
+
+# ---------------------------------------------------------------------
+# Pago · abono de un evento (composición con Evento)
+# Sprint 2: solo lectura, para que el cliente consulte sus pagos (RF-40).
+# ---------------------------------------------------------------------
+@dataclass
+class Pago:
+    id_pago: int
+    id_evento: int
+    monto: Decimal
+    tipo: str
+    fecha_pago: datetime
+    referencia: str | None = None
+
+    @classmethod
+    def desde_fila(cls, fila: dict) -> "Pago":
+        campos = cls.__dataclass_fields__
+        return cls(**{k: v for k, v in fila.items() if k in campos})
+
+    @property
+    def tipo_legible(self) -> str:
+        """'TRANSFERENCIA' o 'pago_inicial' -> 'Transferencia', 'Pago inicial'."""
+        return self.tipo.replace("_", " ").strip().capitalize()
 
 
 # ---------------------------------------------------------------------

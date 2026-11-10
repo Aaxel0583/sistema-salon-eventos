@@ -422,6 +422,41 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .cotizacion__motivo { text-align: center; margin: -.2rem 0 0; }
 .cotizacion .enlace-cancelar { align-self: center; }
 
+/* RF-24 · Agenda del salón en la fecha capturada (HU-007). Neutra si el día está
+   libre; ámbar con borde si ya hay eventos (advertencia que no impide continuar). */
+.agenda-dia {
+  padding: .85rem 1rem; background: var(--panel-suave);
+  border: 1px solid var(--azul-borde); border-radius: var(--radio-control);
+}
+.agenda-dia--ocupada { background: var(--ambar-fondo); border-color: var(--ambar-borde); border-left-width: 6px; }
+.agenda-dia h2 { font-size: 1rem; margin-bottom: .25rem; }
+.agenda-dia__estado { margin: 0; }
+.agenda-dia--ocupada .agenda-dia__estado { color: #5c4500; }
+.agenda-dia__lista { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .3rem; }
+.agenda-dia__lista:empty { display: none; }
+.agenda-dia__lista li { display: flex; flex-wrap: wrap; gap: .15rem .75rem; overflow-wrap: anywhere; }
+.agenda-dia__horas { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.agenda-dia__encimado { color: var(--rojo); }
+
+/* -------------------- IU-09 · Mis eventos (portal del cliente) -------------------- */
+.grupo-eventos + .grupo-eventos { margin-top: 1.5rem; }
+.eventos-cliente { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.evento-cliente {
+  padding: .9rem 1.25rem; background: var(--panel); border: 1px solid var(--azul-borde);
+  border-radius: var(--radio-panel); box-shadow: var(--sombra-1);
+}
+.evento-cliente__cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .25rem 1rem; }
+.evento-cliente__titulo {
+  display: inline-flex; align-items: center; min-height: 44px; min-width: 0;
+  font-size: 1.1rem; font-weight: 700; text-decoration: none; overflow-wrap: anywhere;
+}
+.evento-cliente__titulo:hover { color: var(--azul-hover); text-decoration: underline; }
+.evento-cliente__estado { display: flex; flex-wrap: wrap; gap: .4rem; }
+.evento-cliente__datos { margin: 0; color: var(--tinta-suave); }
+.evento-cliente__datos .cifra { white-space: nowrap; }
+.evento-cliente__saldo { margin: .35rem 0 0; }
+.menu__precio { margin: .75rem 0 0; }
+
 /* -------------------- IU-07 · Ficha del evento -------------------- */
 .cabecera-evento { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: .5rem 1rem; }
 .cabecera-evento h1 { margin: 0; }

@@ -5,8 +5,10 @@ Las pruebas unitarias no tocan la base. Las de integración (marcadas
 `integracion`) reinstalan el esquema en TEST_DATABASE_URL al inicio de la
 sesión: NUNCA apuntes esa variable a la base real.
 """
+import itertools
 import os
 import uuid
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -31,7 +33,7 @@ def base_pruebas():
     import psycopg
     with psycopg.connect(URL_PRUEBAS, autocommit=True) as conexion:
         for script in ("00_limpiar.sql", "01_esquema.sql", "02_reglas_sprint1.sql", "03_semilla.sql",
-                       "04_eventos_sprint2.sql"):
+                       "04_eventos_sprint2.sql", "05_reglas_sprint2.sql"):
             conexion.execute((CARPETA_BD / script).read_text(encoding="utf-8"))
     return URL_PRUEBAS
 
@@ -59,6 +61,19 @@ def app(base_pruebas):
 @pytest.fixture
 def cliente_http(app):
     return app.test_client()
+
+
+_dias = itertools.count(400)
+
+
+def fecha_libre() -> date:
+    """
+    Una fecha futura que ninguna otra prueba de la sesión ha usado. Desde
+    HU-007 la base rechaza dos eventos encimados en el mismo salón (BF002),
+    así que cada prueba reserva en su propio día. Va de hoy + 400 días en
+    adelante; las pruebas con fecha fija usan hoy + 900 o más.
+    """
+    return date.today() + timedelta(days=next(_dias))
 
 
 def correo_unico(prefijo: str = "u") -> str:
