@@ -1,0 +1,5 @@
+<nav class="pestanas" aria-label="Catálogos">
+  <a href="{{ url_for('catalogos.salones') }}" {% if activa == 'salones' %}aria-current="page"{% endif %}>Salones</a>
+  <a href="{{ url_for('catalogos.platillos') }}" {% if activa == 'platillos' %}aria-current="page"{% endif %}>Platillos</a>
+  <a href="{{ url_for('catalogos.paquetes') }}" {% if activa == 'paquetes' %}aria-current="page"{% endif %}>Paquetes</a>
+</nav>

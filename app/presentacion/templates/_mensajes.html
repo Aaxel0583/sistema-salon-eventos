@@ -1,0 +1,6 @@
+{# Convenciones del SDD, Anexo C: rojo = rechazo de regla, ámbar = advertencia #}
+{% with mensajes = get_flashed_messages(with_categories=true) %}
+  {% for categoria, mensaje in mensajes %}
+    <div class="aviso aviso--{{ categoria }}" role="{{ 'alert' if categoria == 'error' else 'status' }}">{{ mensaje }}</div>
+  {% endfor %}
+{% endwith %}

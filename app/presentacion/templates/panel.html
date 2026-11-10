@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block titulo %}Panel{% endblock %}
+{% block contenido %}
+{# IU-03 · Tablero del gerente · SDD Figura 29.
+   Sprint 1: pendientes, catálogos y actividad. Los indicadores de eventos, la
+   ocupación por salón y el aviso de eventos por cerrar llegan con HU-006 (Sprint 2). #}
+{# Hoja de agenda: la fecha de hoy, el motivo de "La Agenda del Salón" #}
+<div class="encabezado encabezado--agenda">
+  <time class="hoja-agenda" datetime="{{ hoy.isoformat() }}">
+    <span class="hoja-agenda__mes">{{ MESES[hoy.month - 1] }}</span>
+    <span class="hoja-agenda__dia">{{ hoy.day }}</span>
+    <span class="hoja-agenda__semana">{{ DIAS[hoy.weekday()] }}</span>
+  </time>
+  <div>
+  <h1>Panel</h1>
+  <p class="resumen-panel">
+    <a href="{{ url_for('clientes.directorio') }}"><strong>{{ clientes }}</strong> {{ 'cliente' if clientes == 1 else 'clientes' }}</a>
+    <a href="{{ url_for('catalogos.paquetes') }}"><strong>{{ paquetes }}</strong> {{ 'paquete' if paquetes == 1 else 'paquetes' }}</a>
+    <a href="{{ url_for('catalogos.salones') }}"><strong>{{ salones|length }}</strong> salones</a>
+  </p>
+  </div>
+</div>
+
+{% set no_disponibles = salones|rejectattr('esta_disponible')|list %}
+<section class="panel" aria-labelledby="t-pendientes">
+  <h2 id="t-pendientes">Pendientes</h2>
+  {% if bloqueados or no_disponibles %}
+    <ul class="lista-simple">
+      {% for c in bloqueados %}
+        <li>
+          <span><strong>{{ c.nombre }}</strong> <span class="texto-suave">· cuenta bloqueada por intentos fallidos</span></span>
+          <a class="boton boton--pequeno" href="{{ url_for('clientes.directorio', q=c.correo or c.telefono) }}">Darle clave nueva<span class="solo-lector"> a {{ c.nombre }}</span></a>
+        </li>
+      {% endfor %}
+      {% for s in no_disponibles %}
+        <li>
+          <span><strong>{{ s.nombre }}</strong> <span class="texto-suave">· marcado como no disponible para reservar</span></span>
+          <a class="boton boton--pequeno" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}#salon-{{ s.id_salon }}">Revisar<span class="solo-lector"> {{ s.nombre }}</span></a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas y los tres salones están disponibles.</p>
+  {% endif %}
+</section>
+
+<div class="dos-columnas">
+  <section class="panel" aria-labelledby="t-salones">
+    <h2 id="t-salones">Salones</h2>
+    <ul class="lista-simple">
+      {% for s in salones %}
+        <li>
+          <strong>{{ s.nombre }}</strong>
+          <span class="texto-suave">{{ s.capacidad_maxima }} personas · ${{ '{:,.2f}'.format(s.costo_renta) }}</span>
+          {% if not s.esta_disponible %}<span class="etiqueta etiqueta--gris">No disponible</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel" aria-labelledby="t-actividad">
+    <h2 id="t-actividad">Actividad reciente</h2>
+    {% if actividad %}
+      <ul class="lista-simple lista-simple--compacta">
+        {% for a in actividad %}
+          <li><span>{{ acciones.get(a.accion, a.accion) }}</span>
+              <span class="texto-suave">{{ a.usuario or 'Sistema' }} · {{ a.fecha.strftime('%d/%m/%Y %H:%M') }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="texto-suave">Todavía no hay movimientos registrados.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% endblock %}
