@@ -19,7 +19,7 @@ Parte 1 (HU-005, HU-006): D-10 a D-19. Parte 2 (HU-007, HU-008): D-20 a D-27. Co
 
 | # | Documento y apartado | Lo que dice la línea base | Lo que hace el código | Justificación | Acción sugerida |
 |---|---|---|---|---|---|
-| D-20 | SRS RN-02, RF-26 | Traslape contra «otro evento vigente»; solo aclara que un cancelado no ocupa el salón | Ocupa el salón todo evento **no cancelado**: cotización, confirmado o realizado. Una cotización aparta el horario | Coincide con BF004, que ya trataba la cotización como agendada, y un evento realizado ocupó físicamente el salón | **Validar con el cliente**: ¿una cotización debe apartar la fecha? · precisar RN-02 |
+| D-20 | SRS RN-02, RF-26 | Traslape contra «otro evento vigente»; solo aclara que un cancelado no ocupa el salón | Aparta el salón solo el evento con anticipo: **confirmado** o **realizado**. Una cotización no aparta el horario; puede haber varias para el mismo salón y horario, y lo gana la primera que se confirma. No se puede cotizar un horario ya apartado, y confirmar una cotización cuyo horario ya apartó otro evento se rechaza con BF002 | Precisión del equipo (10/11/2026): la cotización solo es una solicitud de información; lo único que reserva el salón es el anticipo. La primera versión de la Parte 2 dejaba que una cotización apartara la fecha | **Change Request**: precisar RN-02 en el SRS («vigente» = confirmado o realizado) y recabar la firma de Luis Veyna · BF004 (RN-04) sigue contando las cotizaciones al reducir la capacidad |
 | D-21 | SRS RN-01, SDD IB-02 | El aforo no se excede, sin decir cuándo se evalúa | BF001 se evalúa al registrar y al cambiar salón o asistentes; **no** al cambiar el estatus | RN-04 permite bajar la capacidad cuando el evento grande ya pasó; cerrar ese evento como realizado no debe fallar | Correction Register · precisar IB-02 |
 | D-22 | SDD IB-05 (script 02, Sprint 1) | Trigger de reducción de capacidad, línea base del Release 1 | Se le agregó un candado por salón que comparte con IB-02 e IB-03 | Sin él, una reserva y una reducción de capacidad simultáneas podían dejar un evento con sobrecupo, contra el objetivo de 0 % | Correction Register · las bases instaladas vuelven a ejecutar el script 02 |
 | D-23 | SDD Anexo A, `/api/agenda` | «Alimenta la consulta de agenda y la cotización en vivo» | Solo entrega la agenda (`salon`, `fecha` y, opcionales, `inicio` y `fin`). La cotización en vivo se calcula en el navegador | RNF-01: la cotización no debe esperar al servidor; así quedó desde la Parte 1 | Correction Register · corregir la descripción de la ruta |
@@ -32,7 +32,7 @@ Parte 1 (HU-005, HU-006): D-10 a D-19. Parte 2 (HU-007, HU-008): D-20 a D-27. Co
 
 La Parte 1 advertía el sobrecupo en pantalla pero la base aún no lo rechazaba. Con el script `05_reglas_sprint2.sql` las reglas RN-01 y RN-02 ya se imponen en la base, por lo que el Release 2 puede fusionarse a `main` y etiquetarse.
 
-Al instalar el script 05 sobre una base con datos de la Parte 1, el instalador avisa cuántos eventos vigentes exceden el aforo o se enciman. No los modifica: el gerente debe corregirlos.
+Al instalar el script 05 sobre una base con datos de la Parte 1, el instalador avisa cuántos eventos vigentes exceden el aforo y cuántos eventos confirmados se enciman (D-20). No los modifica: el gerente debe corregirlos.
 
 ## Alineación con `DESIGN.md`
 

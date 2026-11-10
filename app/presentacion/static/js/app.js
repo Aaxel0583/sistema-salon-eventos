@@ -272,15 +272,25 @@ document.addEventListener("DOMContentLoaded", () => {
           const marca = document.createElement("strong");
           marca.textContent = "Se encima";
           fila.append(marca);
+        } else if (e.compite) {
+          // D-20: una cotización no aparta el horario; solo se avisa que hay otra en la fila
+          const marca = document.createElement("strong");
+          marca.textContent = "También cotizado";
+          fila.append(marca);
         }
         return fila;
       }));
-      agenda.classList.toggle("agenda-dia--ocupada", datos.eventos.length > 0);
+      agenda.classList.toggle("agenda-dia--ocupada", datos.eventos.some((e) => e.aparta));
       const encimados = datos.eventos.filter((e) => e.traslapa);
+      const compiten = datos.eventos.filter((e) => e.compite);
       if (!datos.eventos.length) {
         estado.textContent = "Sin eventos ese día: el salón está libre.";
       } else if (datos.libre === null) {
         estado.textContent = "Ese día ya hay eventos. Captura el horario para saber si está libre.";
+      } else if (datos.libre && compiten.length) {
+        estado.textContent = `El horario de ${inicio.value} a ${termino.value} está libre, pero ` +
+          (compiten.length === 1 ? "hay otra cotización" : `hay ${compiten.length} cotizaciones`) +
+          " para ese horario: el salón lo aparta el primer evento que se confirme con anticipo.";
       } else if (datos.libre) {
         estado.textContent = `Ese día ya hay eventos, pero el horario de ${inicio.value} a ${termino.value} está libre.`;
       } else {

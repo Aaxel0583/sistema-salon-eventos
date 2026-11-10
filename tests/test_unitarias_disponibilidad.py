@@ -45,9 +45,12 @@ class TestTraslape:
         cancelado = _evento(time(19), time(23), estado="CANCELADO")
         assert not cancelado.ocupa_salon and not cancelado.se_traslapa(time(20), time(22))
 
-    def test_cotizacion_y_realizado_si_ocupan(self):
-        for estado in ("COTIZACION", "REALIZADO"):
+    def test_solo_el_anticipo_aparta_el_salon(self):                     # RN-02 · D-20
+        for estado in ("CONFIRMADO", "REALIZADO"):
             assert _evento(time(19), time(23), estado=estado).se_traslapa(time(20), time(22))
+        cotizacion = _evento(time(19), time(23), estado="COTIZACION")
+        assert not cotizacion.ocupa_salon and not cotizacion.se_traslapa(time(20), time(22))
+        assert cotizacion.coincide_con(time(20), time(22))
 
 
 class TestAgenda:
@@ -72,6 +75,14 @@ class TestAgenda:
 
     def test_dia_ocupado_con_horario_libre(self):
         assert Agenda(TERRAZA, DIA, [_evento(time(14), time(19))], time(8), time(13)).libre is True
+
+    def test_cotizaciones_compiten_pero_no_ocupan(self):                 # D-20
+        compite = _evento(time(19), time(23), estado="COTIZACION", id_evento=2)
+        temprano = _evento(time(8), time(12), estado="COTIZACION", id_evento=3)
+        agenda = Agenda(TERRAZA, DIA, [temprano, compite], time(20), time(22))
+        assert agenda.libre is True and agenda.traslapes == [] and agenda.cotizaciones_encimadas == [compite]
+        assert [(e["clave"], e["aparta"], e["traslapa"], e["compite"]) for e in agenda.como_dict()["eventos"]] == [
+            ("EVT-2026-0003", False, False, False), ("EVT-2026-0002", False, False, True)]
 
     def test_dia_sin_eventos(self):
         assert Agenda(TERRAZA, DIA, [], time(8), time(13)).libre is True

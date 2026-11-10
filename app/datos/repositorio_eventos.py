@@ -82,9 +82,10 @@ class RepositorioEventos:
 
     def agenda(self, id_salon: int, fecha_evento: date) -> list[Evento]:
         """
-        RF-24 · Eventos que ocupan el salón en una fecha, por hora de inicio.
-        Un evento cancelado no ocupa el salón (RN-02). Se apoya en el índice
-        ix_evento_salon_fecha (RNF-02).
+        RF-24 · Eventos programados en el salón esa fecha, por hora de inicio:
+        los que lo apartan (confirmados o realizados) y las cotizaciones, que
+        no lo apartan pero conviene ver (RN-02, D-20). Un cancelado no
+        aparece. Se apoya en el índice ix_evento_salon_fecha (RNF-02).
         """
         self._cur.execute(
             """SELECT * FROM vw_evento_detalle

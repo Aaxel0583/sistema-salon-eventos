@@ -211,6 +211,9 @@ ESTADOS_EVENTO = {                # RN-11 · espejo de ck_evento_estado
     ESTADO_CANCELADO: "Cancelado",
 }
 ESTADOS_ABIERTOS = {ESTADO_COTIZACION, ESTADO_CONFIRMADO}
+# RN-02 · D-20: el salón lo aparta el anticipo. Una cotización solo es una
+# solicitud de información y no aparta el horario (espejo de IB-03).
+ESTADOS_QUE_APARTAN = {ESTADO_CONFIRMADO, ESTADO_REALIZADO}
 
 
 @dataclass
@@ -275,16 +278,24 @@ class Evento:
 
     @property
     def ocupa_salon(self) -> bool:
-        """RN-02: un evento cancelado no ocupa el salón."""
-        return self.estado != ESTADO_CANCELADO
+        """
+        RN-02 · D-20: aparta el salón el evento que ya dio anticipo
+        (confirmado) o que ya se realizó. Una cotización no lo aparta y un
+        cancelado tampoco.
+        """
+        return self.estado in ESTADOS_QUE_APARTAN
+
+    def coincide_con(self, inicio: time, fin: time) -> bool:
+        """¿Su horario se encima con [inicio, fin), sea cual sea su estatus? Los contiguos no (RF-27)."""
+        return self.hora_inicio < fin and inicio < self.hora_fin
 
     def se_traslapa(self, inicio: time, fin: time) -> bool:
         """
-        ¿Este evento se encima con el horario [inicio, fin)? Los horarios
-        contiguos no se traslapan (RF-27). Sirve para pintar la agenda de
-        IU-06 (RF-24); quien autoriza o rechaza es el trigger IB-03.
+        ¿Este evento le quita al salón el horario [inicio, fin)? Solo si lo
+        tiene apartado y los horarios se enciman. Sirve para pintar la
+        agenda de IU-06 (RF-24); quien autoriza o rechaza es el trigger IB-03.
         """
-        return self.ocupa_salon and self.hora_inicio < fin and inicio < self.hora_fin
+        return self.ocupa_salon and self.coincide_con(inicio, fin)
 
     def pendiente_de_cierre(self, hoy: date) -> bool:
         """IB-11 · RN-14: la fecha pasó y nadie ha dicho si se realizó."""
@@ -295,7 +306,8 @@ class Evento:
         """
         Estatus a los que puede pasar el evento hoy (Figura 25).
 
-        - Cotización -> Confirmado (el cliente acepta), mientras la fecha no haya pasado.
+        - Cotización -> Confirmado (el cliente dio el anticipo), mientras la fecha no haya
+          pasado. La base revisa que nadie haya apartado antes ese horario (BF002, D-20).
         - Cotización o Confirmado -> Realizado, solo si la fecha ya llegó.
         - Cotización o Confirmado -> Cancelado, en cualquier momento.
         - Realizado y Cancelado cierran el ciclo: no tienen salida.

@@ -2,6 +2,10 @@
 Sprint 2 · Parte 2 · Control de aforo y disponibilidad (HU-007, CU-07).
 Casos del SRS Anexo C: CP-10, CP-11, CP-12 y CP-19 completo.
 
+RN-02 precisada (D-20): el salón lo aparta el anticipo. Un evento
+confirmado o realizado ocupa el horario; una cotización no, y puede haber
+varias para el mismo horario hasta que una se confirma.
+
 Las reglas RN-01 (BF001) y RN-02 (BF002) viven en la base (DA-01, RNF-09).
 La primera mitad las prueba por SQL directo, sin la aplicación, como pide
 el Anexo C; la segunda comprueba que la pantalla las traduce a un aviso
@@ -116,10 +120,11 @@ def test_bf001_no_estorba_el_cierre_de_un_evento_anterior(conexion):
 
 
 def test_cp11_bd_rechaza_traslape(conexion):
-    """CP-11 · RF-26 · RN-02: 20:00–23:00 en un salón ocupado de 19:00 a 23:59."""
+    """CP-11 · RF-26 · RN-02: 20:00–23:00 en un salón ocupado de 19:00 a 23:59 por un evento
+    confirmado. Tampoco se puede cotizar ese horario: nunca podría confirmarse (D-20)."""
     cliente = _cliente_sql(conexion)
     dia = fecha_libre()
-    ocupante = _insertar_sql(conexion, cliente, dia, "19:00", "23:59")
+    ocupante = _insertar_sql(conexion, cliente, dia, "19:00", "23:59", estado="CONFIRMADO")
     clave = conexion.execute("SELECT clave_proyecto FROM evento WHERE id_evento = %s",
                              (ocupante,)).fetchone()["clave_proyecto"]
 
@@ -142,7 +147,7 @@ def test_cp11_bd_rechaza_traslape(conexion):
 def test_bf002_todas_las_formas_de_traslape(conexion, inicio, fin):
     cliente = _cliente_sql(conexion)
     dia = fecha_libre()
-    _insertar_sql(conexion, cliente, dia, "19:00", "23:59")
+    _insertar_sql(conexion, cliente, dia, "19:00", "23:59", estado="CONFIRMADO")
     with pytest.raises(psycopg.Error) as error:
         with conexion.transaction():
             _insertar_sql(conexion, cliente, dia, inicio, fin)
@@ -153,7 +158,7 @@ def test_cp12_bd_acepta_horarios_que_no_se_enciman(conexion):
     """CP-12 · RF-27: 08:00–13:00 con otro de 14:00–19:00 la misma fecha."""
     cliente = _cliente_sql(conexion)
     dia = fecha_libre()
-    _insertar_sql(conexion, cliente, dia, "14:00", "19:00")
+    _insertar_sql(conexion, cliente, dia, "14:00", "19:00", estado="CONFIRMADO")
     _insertar_sql(conexion, cliente, dia, "08:00", "13:00")               # CP-12
     _insertar_sql(conexion, cliente, dia, "13:00", "14:00")               # contiguo por ambos lados
     _insertar_sql(conexion, cliente, dia, "14:00", "19:00", salon=2)      # mismo horario, otro salón
@@ -165,7 +170,7 @@ def test_rn02_un_evento_cancelado_no_ocupa_el_salon(conexion):
     cliente = _cliente_sql(conexion)
     dia = fecha_libre()
     cancelado = _insertar_sql(conexion, cliente, dia, "19:00", "23:00", estado="CANCELADO")
-    nuevo = _insertar_sql(conexion, cliente, dia, "20:00", "22:00")       # el horario quedó libre
+    nuevo = _insertar_sql(conexion, cliente, dia, "20:00", "22:00", estado="CONFIRMADO")   # el horario quedó libre
 
     # Reactivar el cancelado ahora sí chocaría con el nuevo.
     error = _rechazo(conexion, "UPDATE evento SET estado = 'COTIZACION' WHERE id_evento = %s", (cancelado,))
@@ -178,7 +183,7 @@ def test_rn02_un_evento_cancelado_no_ocupa_el_salon(conexion):
 def test_bf002_tambien_al_mover_un_evento(conexion):
     cliente = _cliente_sql(conexion)
     dia, otro_dia = fecha_libre(), fecha_libre()
-    _insertar_sql(conexion, cliente, dia, "14:00", "19:00")
+    _insertar_sql(conexion, cliente, dia, "14:00", "19:00", estado="CONFIRMADO")
     movible = _insertar_sql(conexion, cliente, otro_dia, "16:00", "20:00")
 
     error = _rechazo(conexion, "UPDATE evento SET fecha_evento = %s WHERE id_evento = %s", (dia, movible))
@@ -195,47 +200,75 @@ def test_bf001_se_evalua_antes_que_bf002(conexion):
     """Figura 19: primero el aforo, después la agenda."""
     cliente = _cliente_sql(conexion)
     dia = fecha_libre()
-    _insertar_sql(conexion, cliente, dia, "14:00", "19:00")
+    _insertar_sql(conexion, cliente, dia, "14:00", "19:00", estado="CONFIRMADO")
     with pytest.raises(psycopg.Error) as error:
         with conexion.transaction():
             _insertar_sql(conexion, cliente, dia, "15:00", "18:00", asistentes=500)
     assert error.value.sqlstate == "BF001"
 
 
-def test_bf002_dos_reservas_simultaneas_solo_entra_una(base_pruebas):
-    """Dos gerentes guardan el mismo horario al mismo tiempo: la segunda transacción
-    espera a la primera y, al ver su evento, se rechaza (candado por salón)."""
+def test_d20_una_cotizacion_no_aparta_el_salon(conexion):
+    """RN-02 · D-20: dos cotizaciones del mismo horario conviven; la primera que se confirma
+    (anticipo) aparta el salón y la otra ya no puede confirmarse mientras tanto."""
+    cliente = _cliente_sql(conexion)
     dia = fecha_libre()
+    primera = _insertar_sql(conexion, cliente, dia, "18:00", "23:00")
+    segunda = _insertar_sql(conexion, cliente, dia, "19:00", "22:00")           # se acepta: nadie dio anticipo
+    clave = lambda id_evento: conexion.execute(  # noqa: E731
+        "SELECT clave_proyecto FROM evento WHERE id_evento = %s", (id_evento,)).fetchone()["clave_proyecto"]
+
+    conexion.execute("UPDATE evento SET estado = 'CONFIRMADO' WHERE id_evento = %s", (primera,))
+    error = _rechazo(conexion, "UPDATE evento SET estado = 'CONFIRMADO' WHERE id_evento = %s", (segunda,))
+    assert error.sqlstate == "BF002"
+    mensaje = error.diag.message_primary
+    assert mensaje.startswith(f"No se puede confirmar {clave(segunda)}") and clave(primera) in mensaje   # RNF-12
+    assert "18:00" in mensaje and "23:00" in mensaje
+    # Tampoco puede brincar a realizado sobre un horario apartado.
+    assert _rechazo(conexion, "UPDATE evento SET estado = 'REALIZADO' WHERE id_evento = %s",
+                    (segunda,)).sqlstate == "BF002"
+
+    # Si la confirmada se cancela, el horario vuelve a quedar libre para la otra.
+    conexion.execute("UPDATE evento SET estado = 'CANCELADO' WHERE id_evento = %s", (primera,))
+    conexion.execute("UPDATE evento SET estado = 'CONFIRMADO' WHERE id_evento = %s", (segunda,))
+
+
+def test_bf002_dos_confirmaciones_simultaneas_solo_entra_una(base_pruebas):
+    """Dos gerentes confirman al mismo tiempo dos cotizaciones del mismo horario: la segunda
+    transacción espera a la primera y, al ver su anticipo, se rechaza (candado por salón)."""
+    dia = fecha_libre()
+    alta = """INSERT INTO evento (id_cliente, id_salon, id_paquete, fecha_evento, hora_inicio, hora_fin, num_asistentes)
+              VALUES (%s, %s, 1, %s, '14:00', '19:00', 40) RETURNING id_evento"""
     with psycopg.connect(base_pruebas, autocommit=True) as preparacion:
         cliente = preparacion.execute(
             "INSERT INTO usuario (nombre, correo, rol, clave_hash) VALUES ('C', %s, 'CLIENTE', 'x') RETURNING id_usuario",
             (correo_unico("simultaneo"),)).fetchone()[0]
+        ids = [preparacion.execute(alta, (cliente, TERRAZA, dia)).fetchone()[0] for _ in range(2)]
 
-    sql = """INSERT INTO evento (id_cliente, id_salon, id_paquete, fecha_evento, hora_inicio, hora_fin, num_asistentes)
-             VALUES (%s, %s, 1, %s, '14:00', '19:00', 40)"""
+    confirmar = "UPDATE evento SET estado = 'CONFIRMADO' WHERE id_evento = %s"
     resultado = {}
 
     def segunda():
         try:
             with psycopg.connect(base_pruebas) as con:
-                con.execute(sql, (cliente, TERRAZA, dia))
+                con.execute(confirmar, (ids[1],))
             resultado["estado"] = "guardado"
         except psycopg.Error as error:
             resultado["estado"] = error.sqlstate
 
     with psycopg.connect(base_pruebas) as primera:
-        primera.execute(sql, (cliente, TERRAZA, dia))          # sin COMMIT todavía
+        primera.execute(confirmar, (ids[0],))                  # sin COMMIT todavía
         hilo = threading.Thread(target=segunda)
         hilo.start()
         hilo.join(timeout=1.5)
-        assert hilo.is_alive(), "la segunda reserva debió esperar a la primera"
+        assert hilo.is_alive(), "la segunda confirmación debió esperar a la primera"
         primera.commit()
     hilo.join(timeout=10)
     assert resultado["estado"] == "BF002"
     with psycopg.connect(base_pruebas) as verificacion:
-        guardados = verificacion.execute("SELECT COUNT(*) FROM evento WHERE id_salon = %s AND fecha_evento = %s",
-                                         (TERRAZA, dia)).fetchone()[0]
-    assert guardados == 1
+        confirmados = verificacion.execute(
+            "SELECT COUNT(*) FROM evento WHERE id_salon = %s AND fecha_evento = %s AND estado = 'CONFIRMADO'",
+            (TERRAZA, dia)).fetchone()[0]
+    assert confirmados == 1
 
 
 # =====================================================================
@@ -257,12 +290,14 @@ def test_cp10_pantalla_advierte_y_rechaza_sobrecupo(cliente_http, gerente, crear
 
 
 def test_cp11_agenda_muestra_el_evento_y_la_pantalla_rechaza_el_traslape(cliente_http, gerente, crear_usuario):
-    """CP-11 completo: la consulta de agenda lista el evento programado (RF-24) y guardar se rechaza (RF-26)."""
+    """CP-11 completo: la consulta de agenda lista el evento programado (RF-24) y guardar se rechaza (RF-26).
+    El ocupante ya dio anticipo: está confirmado (D-20)."""
     id_cliente, _, _ = crear_usuario("CLIENTE")
     dia = fecha_libre().isoformat()
     primero = _reservar(cliente_http, id_cliente, fecha_evento=dia, hora_inicio="19:00", hora_fin="23:59",
                         nombre_evento="Boda ocupante")
     assert primero.status_code == 302
+    cliente_http.post(f"{primero.location}/estado", data={"estado": "CONFIRMADO"})
     clave = _consulta("SELECT clave_proyecto FROM evento WHERE id_salon = %s AND fecha_evento = %s",
                       (TERRAZA, dia))[0]["clave_proyecto"]
 
@@ -293,6 +328,35 @@ def test_cp12_pantalla_acepta_dos_eventos_el_mismo_dia(cliente_http, gerente, cr
 
     assert _reservar(cliente_http, id_cliente, fecha_evento=dia, hora_inicio="08:00", hora_fin="13:00").status_code == 302
     assert len(_consulta("SELECT 1 FROM evento WHERE id_salon = %s AND fecha_evento = %s", (TERRAZA, dia))) == 2
+
+
+def test_d20_cotizaciones_compiten_y_gana_el_anticipo(cliente_http, gerente, crear_usuario):
+    """D-20 en pantalla: dos cotizaciones del mismo horario se registran; la agenda las muestra
+    sin apartar el salón; confirmada una, la otra ya no se confirma y lo explica en la ficha."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    dia = fecha_libre().isoformat()
+    primera = _reservar(cliente_http, id_cliente, fecha_evento=dia, hora_inicio="18:00", hora_fin="23:00")
+    segunda = _reservar(cliente_http, id_cliente, fecha_evento=dia, hora_inicio="19:00", hora_fin="22:00")
+    assert primera.status_code == 302 and segunda.status_code == 302
+
+    consulta = {"salon": TERRAZA, "fecha": dia, "inicio": "20:00", "fin": "21:00"}
+    agenda = cliente_http.get("/api/agenda", query_string=consulta).get_json()
+    assert agenda["libre"] is True
+    assert [(e["aparta"], e["traslapa"], e["compite"]) for e in agenda["eventos"]] == \
+           [(False, False, True), (False, False, True)]
+
+    cliente_http.post(f"{primera.location}/estado", data={"estado": "CONFIRMADO"})
+    agenda = cliente_http.get("/api/agenda", query_string=consulta).get_json()
+    assert agenda["libre"] is False
+    assert [(e["aparta"], e["traslapa"], e["compite"]) for e in agenda["eventos"]] == \
+           [(True, True, False), (False, False, True)]
+
+    ficha = cliente_http.post(f"{segunda.location}/estado", data={"estado": "CONFIRMADO"},
+                              follow_redirects=True).get_data(as_text=True)
+    assert "No se puede confirmar" in ficha and "ya dio anticipo" in ficha                 # RNF-12
+    estados = _consulta("SELECT estado FROM evento WHERE id_salon = %s AND fecha_evento = %s ORDER BY id_evento",
+                        (TERRAZA, dia))
+    assert [f["estado"] for f in estados] == ["CONFIRMADO", "COTIZACION"]
 
 
 def test_cp19_alta_conjunta_con_sobrecupo_no_deja_al_cliente(cliente_http, gerente):

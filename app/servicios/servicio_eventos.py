@@ -22,8 +22,8 @@ from app.datos.repositorio_bitacora import RepositorioBitacora
 from app.datos.repositorio_catalogos import RepositorioPaquetes, RepositorioSalones
 from app.datos.repositorio_eventos import LIMITE_LISTADO, RepositorioEventos
 from app.datos.repositorio_usuarios import RepositorioUsuarios
-from app.dominio.modelos import (ESTADOS_EVENTO, Evento, OcupacionSalon, Paquete,
-                                 Salon, Usuario)
+from app.dominio.modelos import (ESTADO_COTIZACION, ESTADOS_EVENTO, Evento, OcupacionSalon,
+                                 Paquete, Salon, Usuario)
 from app.servicios.servicio_clientes import ClienteRegistrado, ServicioClientes
 from app.servicios.validaciones import (entero_positivo, fecha, hora,
                                         id_seleccionado, texto_opcional)
@@ -47,6 +47,10 @@ class Agenda:
     RF-24 · Lo que ya está programado en un salón para una fecha y, si se
     indicó un horario, si ese horario está libre. Es informativa: quien
     acepta o rechaza la reserva es el trigger IB-03 (DA-01).
+
+    D-20: el horario lo apartan los eventos confirmados o realizados. Las
+    cotizaciones se listan, pero no lo apartan: compiten por él hasta que
+    una se confirma con anticipo.
     """
     salon: Salon
     fecha: date
@@ -65,6 +69,14 @@ class Agenda:
         return [e for e in self.eventos if e.se_traslapa(self.inicio, self.fin)]
 
     @property
+    def cotizaciones_encimadas(self) -> list[Evento]:
+        """Cotizaciones del mismo horario: no lo apartan, compiten por él (D-20)."""
+        if not self.horario_completo:
+            return []
+        return [e for e in self.eventos
+                if e.estado == ESTADO_COTIZACION and e.coincide_con(self.inicio, self.fin)]
+
+    @property
     def libre(self) -> bool | None:
         """None mientras no haya un horario completo que comparar."""
         return (not self.traslapes) if self.horario_completo else None
@@ -72,6 +84,7 @@ class Agenda:
     def como_dict(self) -> dict:
         """Respuesta de /api/agenda (SDD Anexo A)."""
         encimados = {e.id_evento for e in self.traslapes}
+        compiten = {e.id_evento for e in self.cotizaciones_encimadas}
         return {
             "salon": {"id": self.salon.id_salon, "nombre": self.salon.nombre,
                       "capacidad": self.salon.capacidad_maxima},
@@ -81,7 +94,8 @@ class Agenda:
             "eventos": [
                 {"clave": e.clave_proyecto, "titulo": e.titulo, "inicio": f"{e.hora_inicio:%H:%M}",
                  "fin": f"{e.hora_fin:%H:%M}", "estado": e.estado_legible,
-                 "asistentes": e.num_asistentes, "traslapa": e.id_evento in encimados}
+                 "asistentes": e.num_asistentes, "aparta": e.ocupa_salon,
+                 "traslapa": e.id_evento in encimados, "compite": e.id_evento in compiten}
                 for e in self.eventos
             ],
         }

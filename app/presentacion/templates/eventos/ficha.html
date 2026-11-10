@@ -60,7 +60,7 @@
           {% set c = evento.clave_proyecto %}
           {% set confirmaciones = {
             'CONFIRMADO': ('¿Confirmar ' ~ c ~ '?',
-                           'El cliente aceptó la cotización. El evento pasa a confirmado y su saldo se suma a lo que está por cobrar.',
+                           'El cliente dio el anticipo. El evento pasa a confirmado, aparta el salón en ese horario y su saldo se suma a lo que está por cobrar.',
                            'Confirmar evento', 'primario', 'Cancelar'),
             'REALIZADO':  ('¿' ~ c ~ ' se realizó?',
                            'El evento quedará como realizado y cerrará su ciclo: su estatus ya no podrá cambiar.',

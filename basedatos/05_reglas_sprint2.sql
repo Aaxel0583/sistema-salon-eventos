@@ -75,14 +75,22 @@ CREATE TRIGGER trg_evento_aforo
 -- ---------------------------------------------------------------------
 -- IB-03 · RN-02 · Un salón no alberga dos eventos con horarios traslapados
 --
--- Ocupa el salón todo evento que no esté cancelado (cotización,
--- confirmado o realizado). Dos horarios se traslapan cuando uno empieza
--- antes de que el otro termine; los contiguos (uno termina a las 13:00 y
--- el otro empieza a las 13:00) no se traslapan (RF-27).
+-- Aparta el salón el evento que ya dio anticipo: CONFIRMADO, y después
+-- REALIZADO (D-20, regla precisada con el cliente). Una COTIZACION solo
+-- es una solicitud de información: no aparta el horario y puede haber
+-- varias para el mismo salón y horario; lo gana la primera que se
+-- confirma. Un evento CANCELADO no ocupa el salón.
 --
--- Se evalúa al registrar el evento, al cambiar su salón, fecha u horario,
--- y al reactivar uno cancelado. El trigger consulta la tabla EVENTO
--- directamente, sin depender de la sentencia en curso.
+-- Contra los eventos que apartan el salón se valida:
+--   · el registro de una cotización (no tiene caso cotizar un horario ya
+--     apartado: nunca podría confirmarse);
+--   · el cambio de salón, fecha u horario;
+--   · el paso de cotización a confirmado o realizado, y la reactivación
+--     de uno cancelado.
+-- Dos horarios se traslapan cuando uno empieza antes de que el otro
+-- termine; los contiguos (uno termina a las 13:00 y el otro empieza a
+-- las 13:00) no se traslapan (RF-27). El trigger consulta la tabla
+-- EVENTO directamente, sin depender de la sentencia en curso.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION fn_validar_disponibilidad()
 RETURNS TRIGGER
@@ -99,12 +107,13 @@ BEGIN
     END IF;
 
     IF TG_OP = 'UPDATE'
-       AND OLD.estado <> 'CANCELADO'
        AND NEW.id_salon     = OLD.id_salon
        AND NEW.fecha_evento = OLD.fecha_evento
        AND NEW.hora_inicio  = OLD.hora_inicio
-       AND NEW.hora_fin     = OLD.hora_fin THEN
-        RETURN NEW;                     -- el evento conserva el lugar que ya tenía
+       AND NEW.hora_fin     = OLD.hora_fin
+       AND (OLD.estado IN ('CONFIRMADO', 'REALIZADO')   -- ya tenía apartado su horario
+            OR NEW.estado = OLD.estado) THEN             -- o nada de su agenda cambió
+        RETURN NEW;
     END IF;
 
     -- Dos reservas simultáneas del mismo salón no pueden revisar la agenda
@@ -116,7 +125,7 @@ BEGIN
       FROM evento e
      WHERE e.id_salon     = NEW.id_salon
        AND e.fecha_evento = NEW.fecha_evento
-       AND e.estado      <> 'CANCELADO'
+       AND e.estado      IN ('CONFIRMADO', 'REALIZADO')   -- solo el anticipo aparta (D-20)
        AND e.id_evento IS DISTINCT FROM NEW.id_evento
        AND e.hora_inicio  < NEW.hora_fin
        AND NEW.hora_inicio < e.hora_fin
@@ -125,6 +134,16 @@ BEGIN
 
     IF FOUND THEN
         SELECT s.nombre INTO v_nombre FROM salon s WHERE s.id_salon = NEW.id_salon;
+        IF TG_OP = 'UPDATE' AND OLD.estado = 'COTIZACION' AND NEW.estado <> 'COTIZACION'
+           AND NEW.fecha_evento = OLD.fecha_evento AND NEW.id_salon = OLD.id_salon
+           AND NEW.hora_inicio = OLD.hora_inicio AND NEW.hora_fin = OLD.hora_fin THEN
+            -- La cotización llegó tarde: otro evento ya dio anticipo por ese horario.
+            RAISE EXCEPTION 'No se puede % %: "%" ya está apartado el % de % a % por el evento %, que ya dio anticipo. Cambia el horario, la fecha o el salón de esta cotización, o cancélala.',
+                CASE NEW.estado WHEN 'REALIZADO' THEN 'marcar como realizado' ELSE 'confirmar' END,
+                NEW.clave_proyecto, v_nombre, to_char(NEW.fecha_evento, 'DD/MM/YYYY'),
+                to_char(v_inicio, 'HH24:MI'), to_char(v_fin, 'HH24:MI'), v_clave
+                USING ERRCODE = 'BF002';
+        END IF;
         RAISE EXCEPTION '"%" ya está ocupado el % de % a % por el evento %. Elige otro horario, otra fecha u otro salón.',
             v_nombre, to_char(NEW.fecha_evento, 'DD/MM/YYYY'),
             to_char(v_inicio, 'HH24:MI'), to_char(v_fin, 'HH24:MI'), v_clave
@@ -168,15 +187,15 @@ BEGIN
        AND b.id_evento    > a.id_evento
        AND b.hora_inicio  < a.hora_fin
        AND a.hora_inicio  < b.hora_fin
-     WHERE a.estado <> 'CANCELADO'
-       AND b.estado <> 'CANCELADO'
+     WHERE a.estado IN ('CONFIRMADO', 'REALIZADO')       -- solo el anticipo aparta (D-20)
+       AND b.estado IN ('CONFIRMADO', 'REALIZADO')
        AND a.fecha_evento >= CURRENT_DATE;
 
     IF v_sobrecupo > 0 THEN
         RAISE WARNING 'Hay % evento(s) vigente(s) con más asistentes que la capacidad de su salón (RN-01). Revísalos en Eventos.', v_sobrecupo;
     END IF;
     IF v_traslapes > 0 THEN
-        RAISE WARNING 'Hay % par(es) de eventos próximos que se enciman en el mismo salón (RN-02). Revísalos en Eventos.', v_traslapes;
+        RAISE WARNING 'Hay % par(es) de eventos confirmados próximos que se enciman en el mismo salón (RN-02). Revísalos en Eventos.', v_traslapes;
     END IF;
 END;
 $$;
