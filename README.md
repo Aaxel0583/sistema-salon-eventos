@@ -2,7 +2,14 @@
 
 Aplicación web para cotizar, reservar y cobrar eventos en un salón con tres espacios. Python 3.11 + Flask, HTML5/CSS3 sin framework y PostgreSQL con las reglas críticas en PL/pgSQL (SRS v2.0 §4.5, SDD v2.0).
 
-**Estado: Sprint 1 (Release 1 · Núcleo y Catálogos)** — HU-001 Autenticación, HU-002 Alta de clientes, HU-003 Salones, HU-004 Platillos y paquetes.
+**Estado: Sprint 2 · Parte 1 (Release 2 en construcción)**
+
+| Sprint | Historias | Estado |
+|---|---|---|
+| 1 · Núcleo y catálogos | HU-001 Autenticación · HU-002 Alta de clientes · HU-003 Salones · HU-004 Platillos y paquetes | Terminado |
+| 2 · Parte 1 | HU-005 Registro y cotización de eventos · HU-006 Tablero y gestión de eventos | Terminado |
+| 2 · Parte 2 | HU-007 Aforo y traslape en la base (BF001, BF002) · HU-008 Portal del cliente | Pendiente |
+| 3 | HU-009 a HU-012 Pagos, finiquito y reportes | Pendiente |
 
 ---
 
@@ -84,7 +91,18 @@ Opción B, con psql o pegando cada archivo en el *SQL Editor* de Neon, **en este
 basedatos/01_esquema.sql         tablas, llaves y restricciones (RN-06, RN-07, RN-11, RN-12)
 basedatos/02_reglas_sprint1.sql  triggers BF003, BF004 y bitácora inalterable
 basedatos/03_semilla.sql         3 salones, 13 platillos y 3 paquetes estándar
+basedatos/04_eventos_sprint2.sql clave EVT-AAAA-NNNN, cotización y vistas del tablero (IB-01, IB-07, IB-10, IB-11)
 ```
+
+### Actualizar una base que ya tiene el Sprint 1
+
+Si tu base de Neon ya tiene los scripts 01 a 03 **no uses `--reiniciar`** (borraría los datos). Ejecuta solo el script nuevo:
+
+```bash
+python -m basedatos.instalar --solo 04_eventos_sprint2.sql
+```
+
+El script es re-ejecutable: correrlo dos veces no duplica nada.
 
 `00_limpiar.sql` borra todo; úsalo solo en desarrollo (`python -m basedatos.instalar --reiniciar`).
 
@@ -125,17 +143,19 @@ Sin `TEST_DATABASE_URL` solo corren las unitarias; las de integración se marcan
 | `tests/test_unitarias.py` | Generador de clave dictable (RNF-14), cifrado con sal (RNF-04), normalización de correo y celular (RF-01, RN-07) |
 | `tests/test_reglas_bd.py` | Reglas por SQL directo, sin la aplicación: CP-04, CP-05, CP-06, RN-06, RN-07, RNF-18 |
 | `tests/test_flujos.py` | Flujos web completos: CP-01, CP-02, CP-03, CP-21, CP-22, CP-25 y RF-05 |
+| `tests/test_unitarias_eventos.py` | Ciclo de vida del evento (SDD §5.3), ocupación (IB-10) y validación de la captura de IU-06 |
+| `tests/test_eventos.py` | CP-07, CP-08, CP-09, CP-24, RN-09, alta conjunta (RF-12, DA-05), tablero (IB-10, IB-11) y RF-05 |
 
 ## 10. Estructura y correspondencia con el SDD
 
 ```
 app/
-├── presentacion/          PKG-01  plantillas, CSS y JS (IU-01 a IU-05)
+├── presentacion/          PKG-01  plantillas, CSS y JS (IU-01 a IU-07)
 ├── rutas/                 PKG-02  controladores por área (Anexo A del SDD)
-├── servicios/             PKG-03  reglas de aplicación (C-01, C-02, C-03)
+├── servicios/             PKG-03  reglas de aplicación (C-01 a C-04, C-08)
 ├── seguridad/             PKG-04  cifrado, sesión, decoradores por rol
 ├── datos/                 PKG-05  C-10: pool, transacciones, repositorios, traducción de errores
-├── dominio/               Figura 3: clases Usuario, Salon, Platillo, Paquete
+├── dominio/               Figura 3: clases Usuario, Salon, Platillo, Paquete, Evento
 └── config.py              DA-06: lectura del .env
 basedatos/                 PKG-06  C-11: esquema, triggers y semilla
 administracion/            PKG-07  C-09: utilidad de consola

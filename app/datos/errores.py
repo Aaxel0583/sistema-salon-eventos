@@ -54,6 +54,13 @@ _RESTRICCIONES = {
     "fk_pp_platillo":      (None, "El platillo forma parte de uno o más paquetes. Quítalo de esos paquetes antes de eliminarlo."),
     "fk_paquete_cliente":  (None, "El cliente tiene paquetes personalizados asociados."),
     "fk_evento_paquete":   (None, "El paquete ya está contratado en uno o más eventos y no se puede eliminar."),
+    # Sprint 2 · EVENTO
+    "ck_evento_horario":    (None, "La hora de término debe ser posterior a la hora de inicio."),
+    "ck_evento_asistentes": (None, "El número de invitados debe ser mayor a cero."),
+    "ck_evento_estado":     ("BF0011", "Ese estatus no es válido: usa cotización, confirmado, realizado o cancelado."),
+    "fk_evento_cliente":    (None, "El cliente tiene eventos registrados y no se puede eliminar."),
+    "fk_evento_gerente":    (None, "El gerente es responsable de uno o más eventos."),
+    "fk_evento_salon":      (None, "El salón tiene eventos registrados y no se puede eliminar."),
 }
 
 
@@ -79,6 +86,11 @@ def traducir_error(error: psycopg.Error) -> ErrorDominio:
             "No fue posible comunicarse con la base de datos. "
             "Intenta de nuevo en unos segundos."
         )
+
+    # 4) Un importe que no cabe en la columna (p. ej. un costo de NUMERIC(12,2)).
+    if isinstance(error, pg.NumericValueOutOfRange):
+        return ErrorValidacion("El importe calculado excede el máximo que el sistema puede registrar. "
+                               "Revisa el número de invitados.")
 
     if isinstance(error, (pg.IntegrityError,)):
         log.error("Restricción sin traducción: %s (%s)", restriccion, error)

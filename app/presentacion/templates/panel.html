@@ -1,68 +1,143 @@
 {% extends "base.html" %}
 {% block titulo %}Panel{% endblock %}
 {% block contenido %}
-{# IU-03 · Tablero del gerente · SDD Figura 29.
-   Sprint 1: pendientes, catálogos y actividad. Los indicadores de eventos, la
-   ocupación por salón y el aviso de eventos por cerrar llegan con HU-006 (Sprint 2). #}
-{# Hoja de agenda: la fecha de hoy, el motivo de "La Agenda del Salón" #}
-<div class="encabezado encabezado--agenda">
-  <time class="hoja-agenda" datetime="{{ hoy.isoformat() }}">
-    <span class="hoja-agenda__mes">{{ MESES[hoy.month - 1] }}</span>
-    <span class="hoja-agenda__dia">{{ hoy.day }}</span>
-    <span class="hoja-agenda__semana">{{ DIAS[hoy.weekday()] }}</span>
-  </time>
-  <div>
-  <h1>Panel</h1>
-  <p class="resumen-panel">
-    <a href="{{ url_for('clientes.directorio') }}"><strong>{{ clientes }}</strong> {{ 'cliente' if clientes == 1 else 'clientes' }}</a>
-    <a href="{{ url_for('catalogos.paquetes') }}"><strong>{{ paquetes }}</strong> {{ 'paquete' if paquetes == 1 else 'paquetes' }}</a>
-    <a href="{{ url_for('catalogos.salones') }}"><strong>{{ salones|length }}</strong> salones</a>
-  </p>
+{# IU-03 · Tablero del gerente · SDD Figura 29 · C-08 · HU-006 · DESIGN.md «Panel».
+   Conteos en una línea (IB-01), Pendientes primero (incluye IB-11, RN-14),
+   ocupación por salón (IB-10) y actividad sin inicios de sesión.
+   «Vencen en 21 días» depende de la vista de cartera IB-08 (HU-010, Sprint 3). #}
+{% set t = tablero %}
+{% set ind = t.indicadores %}
+<div class="encabezado encabezado--accion">
+  {# Hoja de agenda: la fecha de hoy, el motivo de "La Agenda del Salón" #}
+  <div class="encabezado--agenda">
+    <time class="hoja-agenda" datetime="{{ t.hoy.isoformat() }}">
+      <span class="hoja-agenda__mes">{{ MESES[t.hoy.month - 1] }}</span>
+      <span class="hoja-agenda__dia">{{ t.hoy.day }}</span>
+      <span class="hoja-agenda__semana">{{ DIAS[t.hoy.weekday()] }}</span>
+    </time>
+    <div>
+      <h1>Panel</h1>
+      <p class="resumen-panel">
+        <a href="{{ url_for('eventos.listado') }}"><strong>{{ ind.activos }}</strong> {{ 'evento activo' if ind.activos == 1 else 'eventos activos' }}</a>
+        <a href="{{ url_for('eventos.listado', estado='CONFIRMADO') }}"><strong>{{ ind.por_cobrar|moneda }}</strong> por cobrar</a>
+        <a href="{{ url_for('eventos.listado') }}"><strong>{{ ind.finiquitados }}</strong> {{ 'finiquitado' if ind.finiquitados == 1 else 'finiquitados' }}</a>
+        <a href="{{ url_for('clientes.directorio') }}"><strong>{{ t.clientes }}</strong> {{ 'cliente' if t.clientes == 1 else 'clientes' }}</a>
+        <a href="{{ url_for('catalogos.paquetes') }}"><strong>{{ t.paquetes }}</strong> {{ 'paquete' if t.paquetes == 1 else 'paquetes' }}</a>
+      </p>
+    </div>
   </div>
+  <a class="boton boton--primario" href="{{ url_for('eventos.nuevo') }}">Nueva reservación</a>
 </div>
 
-{% set no_disponibles = salones|rejectattr('esta_disponible')|list %}
 <section class="panel" aria-labelledby="t-pendientes">
   <h2 id="t-pendientes">Pendientes</h2>
-  {% if bloqueados or no_disponibles %}
-    <ul class="lista-simple">
-      {% for c in bloqueados %}
-        <li>
-          <span><strong>{{ c.nombre }}</strong> <span class="texto-suave">· cuenta bloqueada por intentos fallidos</span></span>
-          <a class="boton boton--pequeno" href="{{ url_for('clientes.directorio', q=c.correo or c.telefono) }}">Darle clave nueva<span class="solo-lector"> a {{ c.nombre }}</span></a>
-        </li>
-      {% endfor %}
-      {% for s in no_disponibles %}
-        <li>
-          <span><strong>{{ s.nombre }}</strong> <span class="texto-suave">· marcado como no disponible para reservar</span></span>
-          <a class="boton boton--pequeno" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}#salon-{{ s.id_salon }}">Revisar<span class="solo-lector"> {{ s.nombre }}</span></a>
-        </li>
-      {% endfor %}
-    </ul>
+  {% if t.hay_pendientes %}
+    {% if t.bloqueados or t.salones_no_disponibles %}
+      <ul class="lista-simple">
+        {% for c in t.bloqueados %}
+          <li>
+            <span><strong>{{ c.nombre }}</strong> <span class="texto-suave">· cuenta bloqueada por intentos fallidos</span></span>
+            <a class="boton boton--pequeno" href="{{ url_for('clientes.directorio', q=c.correo or c.telefono) }}">Darle clave nueva<span class="solo-lector"> a {{ c.nombre }}</span></a>
+          </li>
+        {% endfor %}
+        {% for s in t.salones_no_disponibles %}
+          <li>
+            <span><strong>{{ s.nombre }}</strong> <span class="texto-suave">· marcado como no disponible para reservar</span></span>
+            <a class="boton boton--pequeno" href="{{ url_for('catalogos.salones', editar=s.id_salon) }}#salon-{{ s.id_salon }}">Revisar<span class="solo-lector"> {{ s.nombre }}</span></a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if t.pendientes %}
+      {% set n = t.pendientes|length %}
+      <div class="aviso aviso--aviso pendientes__aviso" role="status">
+        {{ n }} evento{{ 's' if n != 1 }} ya pas{{ 'aron' if n != 1 else 'ó' }} y sigue{{ 'n' if n != 1 }} abierto{{ 's' if n != 1 }}.
+        Indica si se realizó o se canceló para que los reportes reflejen la realidad.
+      </div>
+      <div class="tabla-desplazable">
+        {# En celular cada evento es una tarjeta con sus dos acciones visibles (DESIGN.md «Layout») #}
+        <table class="tabla tabla--tarjetas">
+          <thead>
+            <tr>
+              <th scope="col">Clave</th>
+              <th scope="col">Evento</th>
+              <th scope="col">Salón</th>
+              <th scope="col">Fecha</th>
+              <th scope="col" class="numero">Saldo</th>
+              <th scope="col">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for e in t.pendientes %}
+            <tr>
+              <th scope="row" class="tabla__titulo sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=e.id_evento) }}">{{ e.clave_proyecto }}</a></th>
+              <td data-etiqueta="Evento">{{ e.titulo }} <span class="texto-suave">· {{ e.estado_legible }}</span></td>
+              <td data-etiqueta="Salón" class="sin-corte">{{ e.nombre_salon }}</td>
+              <td data-etiqueta="Fecha" class="tabla__estado cifra cifra--roja">{{ e.fecha_evento|fecha }}</td>
+              <td data-etiqueta="Saldo" class="cifra numero">{{ e.saldo|moneda }}</td>
+              <td class="tabla__accion">
+                <div class="acciones-linea">
+                  <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=e.id_evento) }}"
+                        data-titulo="¿{{ e.clave_proyecto }} se realizó?" data-verbo="Marcar como realizado" data-tono="primario"
+                        data-confirmar="El evento quedará como realizado y cerrará su ciclo: su estatus ya no podrá cambiar.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="estado" value="REALIZADO">
+                    <input type="hidden" name="volver" value="panel">
+                    <button type="submit" class="boton boton--pequeno">Se realizó<span class="solo-lector"> {{ e.clave_proyecto }}</span></button>
+                  </form>
+                  <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=e.id_evento) }}"
+                        data-titulo="¿{{ e.clave_proyecto }} se canceló?" data-verbo="Marcar como cancelado"
+                        data-confirmar="El evento quedará como cancelado y cerrará su ciclo: su estatus ya no podrá cambiar.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="estado" value="CANCELADO">
+                    <input type="hidden" name="volver" value="panel">
+                    <button type="submit" class="boton boton--pequeno boton--peligro">Se canceló<span class="solo-lector"> {{ e.clave_proyecto }}</span></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
   {% else %}
-    <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas y los tres salones están disponibles.</p>
+    <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas, los tres salones están disponibles y ningún evento vencido sigue abierto.</p>
   {% endif %}
 </section>
 
 <div class="dos-columnas">
-  <section class="panel" aria-labelledby="t-salones">
-    <h2 id="t-salones">Salones</h2>
-    <ul class="lista-simple">
-      {% for s in salones %}
+  <section class="panel" aria-labelledby="t-ocupacion">
+    <h2 id="t-ocupacion">Ocupación por salón</h2>
+    <ul class="lista-simple ocupacion">
+      {% for s in t.ocupacion %}
         <li>
-          <strong>{{ s.nombre }}</strong>
-          <span class="texto-suave">{{ s.capacidad_maxima }} personas · ${{ '{:,.2f}'.format(s.costo_renta) }}</span>
-          {% if not s.esta_disponible %}<span class="etiqueta etiqueta--gris">No disponible</span>{% endif %}
+          <span class="ocupacion__nombre">
+            <a href="{{ url_for('eventos.listado', salon=s.id_salon) }}">{{ s.nombre }}</a>
+            {% if s.disponible != 'S' %}<span class="etiqueta etiqueta--gris">No disponible</span>{% endif %}
+          </span>
+          <meter class="medidor {% if s.es_alta %}medidor--alto{% endif %}" min="0" max="100" value="{{ s.porcentaje }}"
+                 aria-label="Ocupación de {{ s.nombre }}: {{ s.porcentaje }} % del aforo">{{ s.porcentaje }} %</meter>
+          <span class="ocupacion__detalle">
+            {% if s.eventos_proximos %}
+              {{ s.eventos_proximos }} evento{{ 's' if s.eventos_proximos != 1 }} · {{ s.ocupacion_promedio }} % de aforo{% if s.es_alta %} (alto){% endif %}
+            {% else %}
+              Sin eventos próximos
+            {% endif %}
+            · capacidad {{ s.capacidad_maxima }}
+          </span>
         </li>
       {% endfor %}
     </ul>
+    <p class="nota">Eventos en cotización o confirmados de hoy en adelante; el porcentaje es el aforo promedio que ocupan.</p>
   </section>
 
   <section class="panel" aria-labelledby="t-actividad">
     <h2 id="t-actividad">Actividad reciente</h2>
-    {% if actividad %}
+    {% if t.actividad %}
       <ul class="lista-simple lista-simple--compacta">
-        {% for a in actividad %}
+        {% for a in t.actividad %}
           <li><span>{{ acciones.get(a.accion, a.accion) }}</span>
               <span class="texto-suave">{{ a.usuario or 'Sistema' }} · {{ a.fecha.strftime('%d/%m/%Y %H:%M') }}</span></li>
         {% endfor %}
@@ -72,5 +147,4 @@
     {% endif %}
   </section>
 </div>
-
 {% endblock %}

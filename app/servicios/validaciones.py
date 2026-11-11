@@ -7,6 +7,7 @@ Normalizar antes de guardar es lo que hace funcionar la unicidad (RN-07):
 "(492) 123-4567" y "+52 492 123 4567" son el mismo celular.
 """
 import re
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 
 from app.datos.errores import ErrorValidacion
@@ -93,3 +94,36 @@ def importe(valor: str | None, campo: str) -> Decimal:
     if numero > _MAX_IMPORTE:
         raise ErrorValidacion(f"El campo «{campo}» admite hasta $99,999,999.99.")
     return numero
+
+
+def fecha(valor: str | None, campo: str) -> date:
+    """Acepta AAAA-MM-DD (lo que envía <input type="date">) o DD/MM/AAAA."""
+    texto = (valor or "").strip()
+    if not texto:
+        raise ErrorValidacion(f"El campo «{campo}» es obligatorio.")
+    for formato in ("%Y-%m-%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(texto, formato).date()
+        except ValueError:
+            continue
+    raise ErrorValidacion(f"El campo «{campo}» debe ser una fecha válida (día/mes/año).")
+
+
+def hora(valor: str | None, campo: str) -> time:
+    """Formato de 24 horas, HH:MM (lo que envía <input type="time">)."""
+    texto = (valor or "").strip()
+    if not texto:
+        raise ErrorValidacion(f"El campo «{campo}» es obligatorio.")
+    for formato in ("%H:%M", "%H:%M:%S"):
+        try:
+            return datetime.strptime(texto, formato).time().replace(second=0)
+        except ValueError:
+            continue
+    raise ErrorValidacion(f"El campo «{campo}» debe ser una hora válida en formato de 24 horas (ej. 19:30).")
+
+
+def id_seleccionado(valor: str | None, campo: str) -> int:
+    """Identificador elegido en una lista desplegable."""
+    if not str(valor or "").strip():
+        raise ErrorValidacion(f"Elige un valor en «{campo}».")
+    return entero_positivo(valor, campo)

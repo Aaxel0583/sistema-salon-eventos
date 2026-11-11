@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{# Listado de eventos · C-08 · HU-006 · RF-28 (filtros por estatus, salón y texto) #}
+{% block titulo %}Eventos{% endblock %}
+{% block contenido %}
+<div class="encabezado encabezado--accion">
+  <h1>Eventos</h1>
+  <a class="boton boton--primario" href="{{ url_for('eventos.nuevo') }}">Nueva reservación</a>
+</div>
+
+<form method="get" action="{{ url_for('eventos.listado') }}" class="filtros" role="search">
+  <div class="campo campo--ancho">
+    <label for="q">Buscar</label>
+    <input type="search" id="q" name="q" value="{{ filtros.texto }}" placeholder="Clave, evento o cliente…" enterkeyhint="search">
+  </div>
+  <div class="campo">
+    <label for="estado">Estatus</label>
+    <select id="estado" name="estado">
+      <option value="">Todos</option>
+      {% for codigo, texto in estados.items() %}
+        <option value="{{ codigo }}" {% if filtros.estado|upper == codigo %}selected{% endif %}>{{ texto }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="campo">
+    <label for="salon">Salón</label>
+    <select id="salon" name="salon">
+      <option value="">Todos</option>
+      {% for s in salones %}
+        <option value="{{ s.id_salon }}" {% if filtros.id_salon == (s.id_salon|string) %}selected{% endif %}>{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="acciones-formulario">
+    <button type="submit" class="boton">Filtrar</button>
+    {% if hay_filtros %}<a class="boton boton--texto" href="{{ url_for('eventos.listado') }}">Quitar filtros</a>{% endif %}
+  </div>
+</form>
+
+{% if eventos %}
+  <div class="tabla-desplazable">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th scope="col">Clave</th>
+          <th scope="col">Evento</th>
+          <th scope="col">Salón</th>
+          <th scope="col">Fecha y horario</th>
+          <th scope="col" class="numero">Invitados</th>
+          <th scope="col" class="numero">Total</th>
+          <th scope="col">Estatus</th>
+          <th scope="col">Responsable</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for e in eventos %}
+        <tr>
+          <td class="sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=e.id_evento) }}">{{ e.clave_proyecto }}</a></td>
+          <td>{{ e.titulo }}{% if e.nombre_evento %}<br><span class="texto-suave">{{ e.nombre_cliente }}</span>{% endif %}</td>
+          <td class="sin-corte">{{ e.nombre_salon }}</td>
+          <td class="cifra"><span class="{{ 'cifra--roja' if e.pendiente_de_cierre(hoy) }}">{{ e.fecha_evento|fecha }}</span><br>
+              <span class="texto-suave">{{ e.horario }}</span></td>
+          <td class="cifra numero">{{ e.num_asistentes }}</td>
+          <td class="cifra numero">{{ e.costo_total|moneda }}</td>
+          <td>{% include "eventos/_estado.html" %}</td>
+          <td>{{ e.nombre_gerente or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if eventos|length >= limite %}
+    <p class="aviso aviso--aviso">Se muestran los primeros {{ limite }} eventos. Usa los filtros para encontrar los demás.</p>
+  {% endif %}
+{% elif hay_filtros %}
+  <p class="texto-suave">Ningún evento coincide con los filtros. <a href="{{ url_for('eventos.listado') }}">Ver todos</a>.</p>
+{% else %}
+  <p class="texto-suave">Aún no hay eventos. Usa «Nueva reservación» para cotizar el primero.</p>
+{% endif %}
+{% endblock %}
