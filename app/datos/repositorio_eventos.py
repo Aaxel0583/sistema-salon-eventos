@@ -1,15 +1,18 @@
 """
 Repositorio de EVENTO y de las vistas IB-01, IB-10 e IB-11.
 
-C-10 · RNF-05 · DA-02 · HU-005, HU-006
+C-10 · RNF-05 · DA-02 · HU-005 a HU-008
 La clave de proyecto (IB-07) y el costo (RN-09) los asigna la base al
-insertar: este repositorio no los calcula ni los envía.
+insertar: este repositorio no los calcula ni los envía. El aforo (IB-02)
+y la disponibilidad (IB-03) los valida la base: aquí solo se consulta la
+agenda para mostrarla (RF-24).
 """
 from datetime import date, time
 
 from psycopg import Cursor
 
-from app.dominio.modelos import ESTADOS_ABIERTOS, Evento, OcupacionSalon
+from app.dominio.modelos import (ESTADO_CANCELADO, ESTADOS_ABIERTOS, Evento,
+                                 OcupacionSalon, Pago)
 
 LIMITE_LISTADO = 200        # filas del listado; la pantalla avisa al llegar aquí
 
@@ -76,6 +79,61 @@ class RepositorioEventos:
             (*parametros, limite),
         )
         return [Evento.desde_fila(f) for f in self._cur.fetchall()]
+
+    def agenda(self, id_salon: int, fecha_evento: date) -> list[Evento]:
+        """
+        RF-24 · Eventos programados en el salón esa fecha, por hora de inicio:
+        los que lo apartan (confirmados o realizados) y las cotizaciones, que
+        no lo apartan pero conviene ver (RN-02, D-20). Un cancelado no
+        aparece. Se apoya en el índice ix_evento_salon_fecha (RNF-02).
+        """
+        self._cur.execute(
+            """SELECT * FROM vw_evento_detalle
+                WHERE id_salon = %s AND fecha_evento = %s AND estado <> %s
+                ORDER BY hora_inicio, id_evento""",
+            (id_salon, fecha_evento, ESTADO_CANCELADO),
+        )
+        return [Evento.desde_fila(f) for f in self._cur.fetchall()]
+
+    def de_cliente(self, id_cliente: int) -> list[Evento]:
+        """
+        RF-39 · Eventos de los que el cliente es titular. El filtro por
+        titular va en la consulta, no en la plantilla (RNF-06). Mismo orden
+        que el listado: primero los próximos, después los pasados.
+        """
+        self._cur.execute(
+            """SELECT * FROM vw_evento_detalle
+                WHERE id_cliente = %s
+                ORDER BY (fecha_evento < CURRENT_DATE),
+                         CASE WHEN fecha_evento >= CURRENT_DATE THEN fecha_evento END ASC,
+                         fecha_evento DESC, hora_inicio, id_evento""",
+            (id_cliente,),
+        )
+        return [Evento.desde_fila(f) for f in self._cur.fetchall()]
+
+    def por_clave_de_cliente(self, clave_proyecto: str, id_cliente: int) -> Evento | None:
+        """
+        RF-39, RNF-06 · El evento solo se encuentra si la clave Y el titular
+        coinciden: para quien no es su dueño, un evento ajeno y uno que no
+        existe son lo mismo.
+        """
+        self._cur.execute(
+            "SELECT * FROM vw_evento_detalle WHERE clave_proyecto = %s AND id_cliente = %s",
+            (clave_proyecto, id_cliente),
+        )
+        fila = self._cur.fetchone()
+        return Evento.desde_fila(fila) if fila else None
+
+    def pagos(self, id_evento: int) -> list[Pago]:
+        """RF-40 · Abonos del evento, del más antiguo al más reciente."""
+        self._cur.execute(
+            """SELECT id_pago, id_evento, monto, tipo, referencia, fecha_pago
+                 FROM pago
+                WHERE id_evento = %s
+                ORDER BY fecha_pago, id_pago""",
+            (id_evento,),
+        )
+        return [Pago.desde_fila(f) for f in self._cur.fetchall()]
 
     def pendientes_cierre(self) -> list[Evento]:
         """IB-11 · RN-14."""

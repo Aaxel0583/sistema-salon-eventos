@@ -2,14 +2,16 @@
 Motor de reservación y gestión de eventos.
 
 C-04 Motor de reservación · HU-005 · CU-06 · RF-12, RF-20 a RF-23
+                            HU-007 · CU-07 · RF-24 (consulta de agenda)
 C-08 Tablero del gerente ... HU-006 · CU-06 · RF-28, RF-29 · IB-10, IB-11
 Escenarios 2 y 5 (Figuras 5 y 8) · Decisiones DA-01, DA-04 y DA-05
 
 Lo que este servicio NO hace (DA-01): calcular el costo, asignar la clave
 ni decidir el aforo o el traslape. La base calcula el costo (RN-09) y
 asigna la clave (RN-08); el aforo (BF001) y el traslape (BF002) los
-validan los triggers de HU-007. Aquí solo se valida que los datos estén
-completos y bien formados, y se traduce la respuesta de la base.
+validan los triggers IB-02 e IB-03 (HU-007). Aquí solo se valida que los
+datos estén completos y bien formados, se consulta la agenda para
+orientar la captura y se traduce la respuesta de la base.
 """
 from dataclasses import dataclass, field
 from datetime import date, time
@@ -20,8 +22,8 @@ from app.datos.repositorio_bitacora import RepositorioBitacora
 from app.datos.repositorio_catalogos import RepositorioPaquetes, RepositorioSalones
 from app.datos.repositorio_eventos import LIMITE_LISTADO, RepositorioEventos
 from app.datos.repositorio_usuarios import RepositorioUsuarios
-from app.dominio.modelos import (ESTADOS_EVENTO, Evento, OcupacionSalon, Paquete,
-                                 Salon, Usuario)
+from app.dominio.modelos import (ESTADO_COTIZACION, ESTADOS_EVENTO, Evento, OcupacionSalon,
+                                 Paquete, Salon, Usuario)
 from app.servicios.servicio_clientes import ClienteRegistrado, ServicioClientes
 from app.servicios.validaciones import (entero_positivo, fecha, hora,
                                         id_seleccionado, texto_opcional)
@@ -37,6 +39,66 @@ class DatosReservacion:
     paquetes: list[Paquete]
     clientes: list[Usuario]
     hoy: date
+
+
+@dataclass
+class Agenda:
+    """
+    RF-24 · Lo que ya está programado en un salón para una fecha y, si se
+    indicó un horario, si ese horario está libre. Es informativa: quien
+    acepta o rechaza la reserva es el trigger IB-03 (DA-01).
+
+    D-20: el horario lo apartan los eventos confirmados o realizados. Las
+    cotizaciones se listan, pero no lo apartan: compiten por él hasta que
+    una se confirma con anticipo.
+    """
+    salon: Salon
+    fecha: date
+    eventos: list[Evento]
+    inicio: time | None = None
+    fin: time | None = None
+
+    @property
+    def horario_completo(self) -> bool:
+        return self.inicio is not None and self.fin is not None and self.fin > self.inicio
+
+    @property
+    def traslapes(self) -> list[Evento]:
+        if not self.horario_completo:
+            return []
+        return [e for e in self.eventos if e.se_traslapa(self.inicio, self.fin)]
+
+    @property
+    def cotizaciones_encimadas(self) -> list[Evento]:
+        """Cotizaciones del mismo horario: no lo apartan, compiten por él (D-20)."""
+        if not self.horario_completo:
+            return []
+        return [e for e in self.eventos
+                if e.estado == ESTADO_COTIZACION and e.coincide_con(self.inicio, self.fin)]
+
+    @property
+    def libre(self) -> bool | None:
+        """None mientras no haya un horario completo que comparar."""
+        return (not self.traslapes) if self.horario_completo else None
+
+    def como_dict(self) -> dict:
+        """Respuesta de /api/agenda (SDD Anexo A)."""
+        encimados = {e.id_evento for e in self.traslapes}
+        compiten = {e.id_evento for e in self.cotizaciones_encimadas}
+        return {
+            "salon": {"id": self.salon.id_salon, "nombre": self.salon.nombre,
+                      "capacidad": self.salon.capacidad_maxima},
+            "fecha": self.fecha.isoformat(),
+            "fecha_legible": f"{self.fecha:%d/%m/%Y}",
+            "libre": self.libre,
+            "eventos": [
+                {"clave": e.clave_proyecto, "titulo": e.titulo, "inicio": f"{e.hora_inicio:%H:%M}",
+                 "fin": f"{e.hora_fin:%H:%M}", "estado": e.estado_legible,
+                 "asistentes": e.num_asistentes, "aparta": e.ocupa_salon,
+                 "traslapa": e.id_evento in encimados, "compite": e.id_evento in compiten}
+                for e in self.eventos
+            ],
+        }
 
 
 @dataclass
@@ -96,6 +158,22 @@ class ServicioReservaciones:
                 clientes=RepositorioUsuarios(cur).buscar_clientes("", limite=None),
                 hoy=RepositorioEventos(cur).hoy(),
             )
+
+    def agenda(self, id_salon: str | None, fecha_evento: str | None,
+               hora_inicio: str | None = None, hora_fin: str | None = None) -> Agenda:
+        """
+        CU-07 · RF-24 · Agenda del salón para la fecha capturada. El horario
+        es opcional: sin él solo se listan los eventos ya programados.
+        """
+        salon_id = id_seleccionado(id_salon, "Salón")
+        dia = fecha(fecha_evento, "Fecha")
+        inicio = hora(hora_inicio, "Inicio") if (hora_inicio or "").strip() else None
+        fin = hora(hora_fin, "Término") if (hora_fin or "").strip() else None
+        with BaseDatos.transaccion() as cur:
+            salon = next((s for s in RepositorioSalones(cur).listar() if s.id_salon == salon_id), None)
+            if salon is None:
+                raise ErrorNoEncontrado("El salón seleccionado no existe.")
+            return Agenda(salon, dia, RepositorioEventos(cur).agenda(salon_id, dia), inicio, fin)
 
     @staticmethod
     def _validar_captura(datos: dict) -> _Captura:

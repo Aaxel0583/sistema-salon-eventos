@@ -9,8 +9,8 @@
 -- IB-11  Pendientes de cierre (vista) . RN-14 · DA-04 · HU-006 · IU-03
 --
 -- Las validaciones de aforo (IB-02, BF001) y de traslape de horario
--- (IB-03, BF002) corresponden a HU-007 y se agregan en el script 05
--- (Sprint 2 · Parte 2).
+-- (IB-03, BF002) corresponden a HU-007 y están en el script 05
+-- (05_reglas_sprint2.sql, Sprint 2 · Parte 2).
 --
 -- Decisión DA-01: la clave y el costo los asigna la base. Aunque el
 -- evento se inserte por SQL directo, la clave sigue el formato y el
@@ -174,19 +174,26 @@ SELECT e.id_evento,
 
 -- ---------------------------------------------------------------------
 -- IB-10 · Ocupación por salón (tablero IU-03)
--- Solo cuenta eventos vigentes (cotización o confirmado) de hoy en
--- adelante. La ocupación es el promedio del porcentaje de aforo que usa
--- cada uno de esos eventos.
+-- Cuenta los eventos CONFIRMADOS de hoy en adelante: son los que apartan
+-- el salón (RN-02 precisada, D-20). La ocupación es el promedio del
+-- porcentaje de aforo que usa cada uno. Las cotizaciones próximas se
+-- cuentan aparte (cotizaciones_proximas) porque todavía no lo apartan.
+-- Script re-ejecutable: la columna nueva va al final de la vista.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE VIEW vw_ocupacion_salon AS
 SELECT s.id_salon,
        s.nombre,
        s.capacidad_maxima,
        s.disponible,
-       COUNT(e.id_evento)::INTEGER                AS eventos_proximos,
-       COALESCE(MAX(e.num_asistentes), 0)::INTEGER AS mayor_aforo,
-       COALESCE(ROUND(AVG(e.num_asistentes * 100.0 / s.capacidad_maxima)), 0)::INTEGER
-                                                   AS ocupacion_promedio
+       (COUNT(e.id_evento) FILTER (WHERE e.estado = 'CONFIRMADO'))::INTEGER
+                                                   AS eventos_proximos,
+       COALESCE(MAX(e.num_asistentes) FILTER (WHERE e.estado = 'CONFIRMADO'), 0)::INTEGER
+                                                   AS mayor_aforo,
+       COALESCE(ROUND(AVG(e.num_asistentes * 100.0 / s.capacidad_maxima)
+                      FILTER (WHERE e.estado = 'CONFIRMADO')), 0)::INTEGER
+                                                   AS ocupacion_promedio,
+       (COUNT(e.id_evento) FILTER (WHERE e.estado = 'COTIZACION'))::INTEGER
+                                                   AS cotizaciones_proximas
   FROM salon s
   LEFT JOIN evento e
          ON e.id_salon = s.id_salon

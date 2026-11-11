@@ -154,14 +154,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // IU-06 (Figura 32) · Cotización en vivo, lugares disponibles y alta rápida del cliente.
-  // Solo orienta la captura: el costo oficial lo calcula la base al guardar (RN-09)
-  // y el aforo lo hace cumplir el trigger de HU-007 (BF001).
+  // IU-06 (Figura 32) · Cotización en vivo, lugares disponibles, agenda del salón
+  // y alta rápida del cliente. Solo orienta la captura: el costo oficial lo calcula
+  // la base al guardar (RN-09) y el aforo y el traslape los hacen cumplir los
+  // triggers de HU-007 (BF001 y BF002).
   const formReserva = document.querySelector("[data-reservacion]");
   if (formReserva) {
     const $ = (selector) => formReserva.querySelector(selector);
     const salon = $("#id_salon"), paquete = $("#id_paquete"), invitados = $("#num_asistentes");
-    const inicio = $("#hora_inicio"), termino = $("#hora_fin");
+    const inicio = $("#hora_inicio"), termino = $("#hora_fin"), fecha = $("#fecha_evento");
+    const agenda = $("[data-agenda]"), avisoTraslape = $("[data-aviso-traslape]");
+    let traslape = "";            // mensaje del traslape vigente; "" si el horario está libre
+    let consultaAgenda = null;    // AbortController de la consulta en curso
+    let esperaAgenda = 0;
     const cliente = $("#id_cliente"), esNuevo = $("#cliente_nuevo");
     const bloqueNuevo = $("[data-cliente-nuevo]"), bloqueExistente = $("[data-cliente-existente]");
     const avisoAforo = $("[data-aviso-aforo]"), avisoHorario = $("[data-aviso-horario]");
@@ -233,16 +238,107 @@ document.addEventListener("DOMContentLoaded", () => {
         problema = problema || "horario";
       }
 
+      // RF-24 · el horario se encima con un evento ya programado (lo informó /api/agenda)
+      avisoTraslape.hidden = !traslape || Boolean(horarioMal);
+      if (traslape && !horarioMal) {
+        avisoTraslape.textContent = traslape;
+        problema = problema || "traslape";
+      }
+
       guardar.disabled = Boolean(problema);
       motivo.hidden = !problema;
       motivo.textContent = problema === "aforo" ? "Deshabilitado mientras el aforo no se cumpla."
-                         : problema === "horario" ? "Deshabilitado hasta corregir el horario." : "";
+                         : problema === "horario" ? "Deshabilitado hasta corregir el horario."
+                         : problema === "traslape" ? "Deshabilitado mientras el horario se encime con otro evento." : "";
+    };
+
+    // RF-24 (HU-007) · Agenda del salón en la fecha capturada.
+    // El servidor decide qué eventos se enciman; aquí solo se pinta la respuesta.
+    const pintarAgenda = (datos) => {
+      const lista = agenda.querySelector("[data-agenda-lista]");
+      const estado = agenda.querySelector("[data-agenda-estado]");
+      agenda.querySelector("[data-agenda-titulo]").textContent =
+        `Agenda de ${datos.salon.nombre} · ${datos.fecha_legible}`;
+      lista.replaceChildren(...datos.eventos.map((e) => {
+        const fila = document.createElement("li");
+        const horas = document.createElement("span");
+        horas.className = "agenda-dia__horas";
+        horas.textContent = `${e.inicio} a ${e.fin}`;
+        const detalle = document.createElement("span");
+        detalle.textContent = `${e.clave} · ${e.titulo} (${e.estado})`;
+        fila.append(horas, detalle);
+        if (e.traslapa) {
+          fila.className = "agenda-dia__encimado";
+          const marca = document.createElement("strong");
+          marca.textContent = "Se encima";
+          fila.append(marca);
+        } else if (e.compite) {
+          // D-20: una cotización no aparta el horario; solo se avisa que hay otra en la fila
+          const marca = document.createElement("strong");
+          marca.textContent = "También cotizado";
+          fila.append(marca);
+        }
+        return fila;
+      }));
+      agenda.classList.toggle("agenda-dia--ocupada", datos.eventos.some((e) => e.aparta));
+      const encimados = datos.eventos.filter((e) => e.traslapa);
+      const compiten = datos.eventos.filter((e) => e.compite);
+      if (!datos.eventos.length) {
+        estado.textContent = "Sin eventos ese día: el salón está libre.";
+      } else if (datos.libre === null) {
+        estado.textContent = "Ese día ya hay eventos. Captura el horario para saber si está libre.";
+      } else if (datos.libre && compiten.length) {
+        estado.textContent = `El horario de ${inicio.value} a ${termino.value} está libre, pero ` +
+          (compiten.length === 1 ? "hay otra cotización" : `hay ${compiten.length} cotizaciones`) +
+          " para ese horario: el salón lo aparta el primer evento que se confirme con anticipo.";
+      } else if (datos.libre) {
+        estado.textContent = `Ese día ya hay eventos, pero el horario de ${inicio.value} a ${termino.value} está libre.`;
+      } else {
+        estado.textContent = "El horario que capturaste no está libre.";
+      }
+      traslape = encimados.length
+        ? `"${datos.salon.nombre}" ya está ocupado el ${datos.fecha_legible} de ${encimados[0].inicio} a ` +
+          `${encimados[0].fin} por el evento ${encimados[0].clave}. Elige otro horario, otra fecha u otro salón.`
+        : "";
+      agenda.hidden = false;
+    };
+
+    const consultarAgenda = () => {
+      clearTimeout(esperaAgenda);
+      consultaAgenda?.abort();
+      if (!salon.value || !fecha.value) {
+        agenda.hidden = true; traslape = ""; recalcular();
+        return;
+      }
+      esperaAgenda = setTimeout(async () => {
+        consultaAgenda = new AbortController();
+        const parametros = new URLSearchParams({ salon: salon.value, fecha: fecha.value });
+        if (inicio.value && termino.value && termino.value > inicio.value) {
+          parametros.set("inicio", inicio.value);
+          parametros.set("fin", termino.value);
+        }
+        try {
+          const respuesta = await fetch(`${agenda.dataset.url}?${parametros}`, {
+            headers: { Accept: "application/json" }, signal: consultaAgenda.signal,
+          });
+          const esJson = (respuesta.headers.get("content-type") || "").includes("application/json");
+          if (!respuesta.ok || !esJson) throw new Error("agenda no disponible");
+          pintarAgenda(await respuesta.json());
+        } catch (error) {
+          if (error.name === "AbortError") return;
+          // Sin agenda la captura sigue: la base valida el horario al guardar (BF002).
+          agenda.hidden = true; traslape = "";
+        }
+        recalcular();
+      }, 250);
     };
 
     esNuevo.addEventListener("change", () => { alternarCliente(); recalcular(); });
     cliente.addEventListener("change", () => { filtrarPaquetes(); recalcular(); });
     [salon, paquete].forEach((campo) => campo.addEventListener("change", recalcular));
     [invitados, inicio, termino].forEach((campo) => campo.addEventListener("input", recalcular));
+    salon.addEventListener("change", consultarAgenda);
+    [fecha, inicio, termino].forEach((campo) => campo.addEventListener("input", consultarAgenda));
 
     // Evita registrar dos veces el mismo evento por un doble clic.
     formReserva.addEventListener("submit", (evento) => {
@@ -251,7 +347,9 @@ document.addEventListener("DOMContentLoaded", () => {
       guardar.textContent = "Guardando…";
     });
     // Al volver con el botón «atrás» el navegador puede restaurar el botón deshabilitado.
-    window.addEventListener("pageshow", () => { guardar.textContent = "Guardar reservación"; recalcular(); });
+    window.addEventListener("pageshow", () => {
+      guardar.textContent = "Guardar reservación"; recalcular(); consultarAgenda();
+    });
 
     alternarCliente();
     recalcular();

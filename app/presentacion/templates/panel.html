@@ -121,16 +121,17 @@
                  aria-label="Ocupación de {{ s.nombre }}: {{ s.porcentaje }} % del aforo">{{ s.porcentaje }} %</meter>
           <span class="ocupacion__detalle">
             {% if s.eventos_proximos %}
-              {{ s.eventos_proximos }} evento{{ 's' if s.eventos_proximos != 1 }} · {{ s.ocupacion_promedio }} % de aforo{% if s.es_alta %} (alto){% endif %}
+              {{ s.eventos_proximos }} confirmado{{ 's' if s.eventos_proximos != 1 }} · {{ s.ocupacion_promedio }} % de aforo{% if s.es_alta %} (alto){% endif %}
             {% else %}
-              Sin eventos próximos
+              Sin eventos confirmados
             {% endif %}
+            {% if s.cotizaciones_proximas %}· {{ s.cotizaciones_proximas }} en cotización{% endif %}
             · capacidad {{ s.capacidad_maxima }}
           </span>
         </li>
       {% endfor %}
     </ul>
-    <p class="nota">Eventos en cotización o confirmados de hoy en adelante; el porcentaje es el aforo promedio que ocupan.</p>
+    <p class="nota">Cuentan los eventos confirmados de hoy en adelante, que son los que apartan el salón; el porcentaje es el aforo promedio que ocupan. Las cotizaciones se indican aparte porque todavía no lo apartan.</p>
   </section>
 
   <section class="panel" aria-labelledby="t-actividad">
