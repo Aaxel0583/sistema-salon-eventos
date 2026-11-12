@@ -467,3 +467,39 @@ document.addEventListener("DOMContentLoaded", () => {
     pliegue.open = false;
   }
 });
+
+/* ---------------------------------------------------------------------
+   IU-07 · Captura de abono (HU-009)
+   Solo ayuda a capturar: el diálogo de confirmación muestra el monto
+   escrito y avisa si con él se liquida el evento. El saldo y el finiquito
+   los decide la base (IB-06); un abono mayor al saldo lo rechaza ella.
+   --------------------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const abono = document.querySelector("form[data-abono]");
+  if (!abono) return;
+  const monto = abono.querySelector("#monto");
+  const liquidar = abono.querySelector("[data-liquidar]");
+  const saldo = parseFloat(abono.dataset.saldo);
+  const consecuencia = abono.dataset.confirmar;
+  const moneda = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+
+  const actualizar = () => {
+    const valor = parseFloat(monto.value);
+    if (!(valor > 0)) return;
+    abono.dataset.titulo = `¿Registrar abono de ${moneda.format(valor)} a ${abono.dataset.clave}?`;
+    const liquida = Math.abs(valor - saldo) < 0.005;
+    abono.dataset.confirmar = (liquida
+      ? "Con este abono el saldo llega a cero y el evento queda finiquitado. " : "") + consecuencia;
+  };
+  monto.addEventListener("input", actualizar);
+
+  if (saldo > 0) {
+    liquidar.hidden = false;
+    liquidar.addEventListener("click", () => {
+      monto.value = saldo.toFixed(2);
+      actualizar();
+      monto.focus();
+    });
+  }
+  actualizar();
+});

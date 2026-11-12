@@ -61,7 +61,15 @@ _RESTRICCIONES = {
     "fk_evento_cliente":    (None, "El cliente tiene eventos registrados y no se puede eliminar."),
     "fk_evento_gerente":    (None, "El gerente es responsable de uno o más eventos."),
     "fk_evento_salon":      (None, "El salón tiene eventos registrados y no se puede eliminar."),
+    # Sprint 3 · PAGO
+    "ck_pago_monto":        ("BF005", "El monto del abono debe ser mayor a cero."),
+    "fk_pago_evento":       (None, "El evento del abono no existe."),
 }
+
+
+# PostgreSQL solo admite códigos de cinco caracteres; el SRS §8 numera las
+# reglas RN-10 en adelante con seis (BF0010). Aquí se devuelve el nombre del SRS.
+_CODIGOS_SRS = {"BF010": "BF0010"}
 
 
 def traducir_error(error: psycopg.Error) -> ErrorDominio:
@@ -70,9 +78,9 @@ def traducir_error(error: psycopg.Error) -> ErrorDominio:
 
     # 1) Reglas impuestas por triggers y procedimientos: RAISE ... ERRCODE 'BFnnn'.
     #    El mensaje ya viene redactado para el usuario y con los valores
-    #    (BF001 aforo y BF002 traslape, de HU-007, llegan por aquí).
+    #    (BF001 aforo y BF002 traslape, de HU-007; BF005 pago y BF010 finiquito, de HU-009).
     if codigo.startswith("BF"):
-        return ErrorNegocio(error.diag.message_primary, codigo)
+        return ErrorNegocio(error.diag.message_primary, _CODIGOS_SRS.get(codigo, codigo))
 
     # 2) Restricciones declarativas con nombre (UNIQUE, CHECK, FK).
     restriccion = getattr(error.diag, "constraint_name", None)

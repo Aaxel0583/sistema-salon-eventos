@@ -4,7 +4,8 @@
 {# IU-03 · Tablero del gerente · SDD Figura 29 · C-08 · HU-006 · DESIGN.md «Panel».
    Conteos en una línea (IB-01), Pendientes primero (incluye IB-11, RN-14),
    ocupación por salón (IB-10) y actividad sin inicios de sesión.
-   «Vencen en 21 días» depende de la vista de cartera IB-08 (HU-010, Sprint 3). #}
+   Sprint 3: lo que está por cobrar, lo vencido y lo que vence en 21 días salen de
+   la vista de cartera IB-08, la misma del reporte (HU-010). #}
 {% set t = tablero %}
 {% set ind = t.indicadores %}
 <div class="encabezado encabezado--accion">
@@ -15,7 +16,7 @@
       <h1>Panel</h1>
       <p class="resumen-panel">
         <a href="{{ url_for('eventos.listado') }}"><strong>{{ ind.activos }}</strong> {{ 'evento activo' if ind.activos == 1 else 'eventos activos' }}</a>
-        <a href="{{ url_for('eventos.listado', estado='CONFIRMADO') }}"><strong>{{ ind.por_cobrar|moneda }}</strong> por cobrar</a>
+        <a href="{{ url_for('reportes.cartera') }}"><strong>{{ ind.por_cobrar|moneda }}</strong> por cobrar</a>
         <a href="{{ url_for('eventos.listado') }}"><strong>{{ ind.finiquitados }}</strong> {{ 'finiquitado' if ind.finiquitados == 1 else 'finiquitados' }}</a>
         <a href="{{ url_for('clientes.directorio') }}"><strong>{{ t.clientes }}</strong> {{ 'cliente' if t.clientes == 1 else 'clientes' }}</a>
         <a href="{{ url_for('catalogos.paquetes') }}"><strong>{{ t.paquetes }}</strong> {{ 'paquete' if t.paquetes == 1 else 'paquetes' }}</a>
@@ -30,8 +31,23 @@
 <section class="panel" aria-labelledby="t-pendientes">
   <h2 id="t-pendientes">Pendientes</h2>
   {% if t.hay_pendientes %}
-    {% if t.bloqueados or t.salones_no_disponibles %}
+    {% if t.bloqueados or t.salones_no_disponibles or t.hay_cobranza %}
       <ul class="lista-simple">
+        {# Cobranza preventiva (HU-010): primero lo vencido, después lo que vence en 21 días #}
+        {% if ind.cuentas_vencidas %}
+          <li>
+            <span><strong class="cifra--roja">{{ ind.cuentas_vencidas }} {{ 'cuenta vencida' if ind.cuentas_vencidas == 1 else 'cuentas vencidas' }}</strong>
+              <span class="texto-suave">· <span class="cifra">{{ ind.vencido|moneda }}</span> de eventos cuya fecha ya pasó</span></span>
+            <a class="boton boton--pequeno" href="{{ url_for('reportes.cartera', semaforo='VENCIDA') }}">Ver cuentas vencidas</a>
+          </li>
+        {% endif %}
+        {% if ind.cuentas_por_vencer %}
+          <li>
+            <span><strong>{{ ind.cuentas_por_vencer }} {{ 'cuenta vence' if ind.cuentas_por_vencer == 1 else 'cuentas vencen' }} en 21 días</strong>
+              <span class="texto-suave">· <span class="cifra">{{ ind.por_vencer|moneda }}</span> por cobrar antes del evento</span></span>
+            <a class="boton boton--pequeno" href="{{ url_for('reportes.cartera', semaforo='PROXIMA') }}">Ver cuentas por vencer</a>
+          </li>
+        {% endif %}
         {% for c in t.bloqueados %}
           <li>
             <span><strong>{{ c.nombre }}</strong> <span class="texto-suave">· cuenta bloqueada por intentos fallidos</span></span>
@@ -101,7 +117,7 @@
       </div>
     {% endif %}
   {% else %}
-    <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas, los tres salones están disponibles y ningún evento vencido sigue abierto.</p>
+    <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas, los tres salones están disponibles, ningún evento vencido sigue abierto y no hay cobros vencidos ni por vencer en 21 días.</p>
   {% endif %}
 </section>
 

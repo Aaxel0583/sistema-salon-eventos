@@ -308,6 +308,12 @@ Después de **Pendientes** va **Esta semana** (en el celular, antes; los conteos
 ### Armador de paquetes
 Resumen vivo arriba de los platillos («2 platillos · $280.00 por persona»), fijo al desplazarse en escritorio. Con más de 8 clientes aparece un buscador que filtra la lista.
 
+### Reportes
+Pestañas (Cartera, Activos, Realizados) arriba y el título debajo, como en catálogos. Los totales van en tarjetas con una banda lateral de 6px; la banda y el fondo toman el rojo o el ámbar solo cuando hay algo que atender (un total en cero queda neutro). «Descargar CSV» es un botón secundario: el archivo trae las columnas y los filtros de la pantalla. En celular cada renglón es una tarjeta con la clave y su etiqueta arriba.
+
+### Abono
+En la ficha del evento, a la derecha del historial de pagos. El diálogo de confirmación lleva el monto escrito en el título («¿Registrar abono de $5,000.00 a EVT-2026-0009?») y el verbo en azul, porque registrar un abono no destruye nada; avisa si con ese monto el evento queda finiquitado. El finiquito nunca es un control: es una etiqueta verde que pone el sistema.
+
 ### Tablas
 Encabezado Azul Claro con texto Marino de Gala; filas Panel Suave separadas por la Línea (#e3e9f2) que se aclaran a blanco al pasar el cursor.
 

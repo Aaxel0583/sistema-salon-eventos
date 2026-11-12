@@ -58,10 +58,12 @@ def _registrar_blueprints(app: Flask) -> None:
     from app.rutas.catalogos import bp as catalogos
     from app.rutas.clientes import bp as clientes
     from app.rutas.eventos import bp as eventos
+    from app.rutas.pagos import bp as pagos
     from app.rutas.panel import bp as panel
     from app.rutas.portal import bp as portal
+    from app.rutas.reportes import bp as reportes
 
-    for blueprint in (acceso, panel, eventos, agenda, clientes, catalogos, portal):
+    for blueprint in (acceso, panel, eventos, pagos, agenda, clientes, catalogos, reportes, portal):
         app.register_blueprint(blueprint)
 
 
