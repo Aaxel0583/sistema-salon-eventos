@@ -2,14 +2,14 @@
 
 Aplicación web para cotizar, reservar y cobrar eventos en un salón con tres espacios. Python 3.11 + Flask, HTML5/CSS3 sin framework y PostgreSQL con las reglas críticas en PL/pgSQL (SRS v2.0 §4.5, SDD v2.0).
 
-**Estado: Sprint 2 terminado (Release 2 · Operación y Aforo)**
+**Estado: Sprint 3 terminado (Release 3 · Finanzas y Reportes). Las doce historias de usuario están construidas y probadas.**
 
 | Sprint | Historias | Estado |
 |---|---|---|
 | 1 · Núcleo y catálogos | HU-001 Autenticación · HU-002 Alta de clientes · HU-003 Salones · HU-004 Platillos y paquetes | Terminado |
 | 2 · Parte 1 | HU-005 Registro y cotización de eventos · HU-006 Tablero y gestión de eventos | Terminado |
 | 2 · Parte 2 | HU-007 Aforo y traslape en la base (BF001, BF002) · HU-008 Portal del cliente | Terminado |
-| 3 | HU-009 a HU-012 Pagos, finiquito y reportes | Pendiente |
+| 3 | HU-009 Pagos y finiquito (BF005, BF0010) · HU-010 Cartera a 21 días · HU-011 Proyectos activos · HU-012 Proyectos realizados · descarga en CSV | Terminado |
 
 ---
 
@@ -93,6 +93,7 @@ basedatos/02_reglas_sprint1.sql  triggers BF003, BF004 y bitácora inalterable
 basedatos/03_semilla.sql         3 salones, 13 platillos y 3 paquetes estándar
 basedatos/04_eventos_sprint2.sql clave EVT-AAAA-NNNN, cotización y vistas del tablero (IB-01, IB-07, IB-10, IB-11)
 basedatos/05_reglas_sprint2.sql  triggers de aforo BF001 (IB-02) y de disponibilidad BF002 (IB-03)
+basedatos/06_finanzas_sprint3.sql registro de pago BF005 y finiquito (IB-06), cartera (IB-08) y reportes (IB-09)
 ```
 
 ### Actualizar una base que ya tiene un sprint anterior
@@ -104,12 +105,17 @@ Si tu base de Neon ya tiene datos **no uses `--reiniciar`** (los borraría). Eje
 python -m basedatos.instalar --solo 02_reglas_sprint1.sql 04_eventos_sprint2.sql 05_reglas_sprint2.sql
 
 # Base con el Sprint 2 · Parte 1 (scripts 01 a 04)
-python -m basedatos.instalar --solo 02_reglas_sprint1.sql 05_reglas_sprint2.sql
+python -m basedatos.instalar --solo 02_reglas_sprint1.sql 05_reglas_sprint2.sql 06_finanzas_sprint3.sql
+
+# Base con el Sprint 2 completo (scripts 01 a 05)
+python -m basedatos.instalar --solo 06_finanzas_sprint3.sql
 ```
 
 El script 02 se vuelve a ejecutar porque su trigger de reducción de capacidad (BF004) ahora comparte un candado con el de aforo (BF001). Todos los scripts son re-ejecutables: correrlos dos veces no duplica nada.
 
 Si la base ya tenía eventos capturados antes de instalar el script 05, el instalador avisa cuántos exceden el aforo o se enciman. No modifica nada: corrígelos desde **Eventos**.
+
+Al instalar el script 06 sobre una base que ya tenía abonos, los eventos cuyo costo ya estaba cubierto reciben su finiquito con la fecha de su último abono, y el instalador avisa cuántos fueron.
 
 `00_limpiar.sql` borra todo; úsalo solo en desarrollo (`python -m basedatos.instalar --reiniciar`).
 
@@ -155,22 +161,29 @@ Sin `TEST_DATABASE_URL` solo corren las unitarias; las de integración se marcan
 | `tests/test_unitarias_disponibilidad.py` | Traslape de horarios para la agenda (RF-24, RF-27), respuesta de `/api/agenda` y lectura de pagos |
 | `tests/test_disponibilidad.py` | CP-10, CP-11, CP-12 y CP-19 completo: BF001 y BF002 por SQL directo y desde la pantalla, reservas simultáneas y consulta de agenda |
 | `tests/test_portal.py` | CP-13: el cliente ve solo sus eventos, con menú, pagos y saldo; el evento ajeno se niega (RNF-06) |
+| `tests/test_unitarias_finanzas.py` | Cobro, semáforo y archivo CSV sin base de datos (RF-38, IE-02) |
+| `tests/test_pagos.py` | CP-14, CP-15 y CP-23: abono, finiquito automático, BF005 y BF0010 por SQL directo y desde la pantalla, abonos simultáneos, anticipo que confirma (D-33) |
+| `tests/test_reportes.py` | CP-16, CP-17 y CP-18: semáforo a 21 días, activos, realizados y CSV con las columnas de la pantalla |
+| `tests/test_conexion.py` | CP-20: la sesión sobrevive al cierre forzado de las conexiones (RNF-11) |
+| `tests/test_zz_rendimiento.py` | RNF-03: reportes y tablero en menos de 5 s con 500 eventos |
+
+Resultado de la regresión completa y matriz de los 25 casos del SRS: `docs/registro_pruebas.md`.
 
 ## 10. Estructura y correspondencia con el SDD
 
 ```
 app/
-├── presentacion/          PKG-01  plantillas, CSS y JS (IU-01 a IU-07)
+├── presentacion/          PKG-01  plantillas, CSS y JS (IU-01 a IU-10)
 ├── rutas/                 PKG-02  controladores por área (Anexo A del SDD)
-├── servicios/             PKG-03  reglas de aplicación (C-01 a C-04, C-08)
+├── servicios/             PKG-03  reglas de aplicación (C-01 a C-08)
 ├── seguridad/             PKG-04  cifrado, sesión, decoradores por rol
 ├── datos/                 PKG-05  C-10: pool, transacciones, repositorios, traducción de errores
-├── dominio/               Figura 3: clases Usuario, Salon, Platillo, Paquete, Evento
+├── dominio/               Figura 3: clases Usuario, Salon, Platillo, Paquete, Evento, Pago
 └── config.py              DA-06: lectura del .env
 basedatos/                 PKG-06  C-11: esquema, triggers y semilla
 administracion/            PKG-07  C-09: utilidad de consola
 tests/                     Casos de prueba del SRS, Anexo C
-docs/                      Desviaciones y trazabilidad del sprint
+docs/                      Desviaciones y trazabilidad por sprint, registro de pruebas y manuales
 wsgi.py                    Punto de entrada (Flask / Gunicorn)
 ```
 
@@ -181,3 +194,13 @@ wsgi.py                    Punto de entrada (Flask / Gunicorn)
 | Build command | `pip install -r requirements.txt` |
 | Start command | `gunicorn wsgi:app` |
 | Variables | `DATABASE_URL`, `SECRET_KEY`, `NOMBRE_NEGOCIO`, `COOKIE_SEGURA=1`, `PYTHON_VERSION=3.11.9` |
+
+## 12. Documentación de entrega
+
+| Documento | Para quién |
+|---|---|
+| `docs/manual_usuario.md` | Gerente y cliente del salón: cómo se usa cada pantalla |
+| `docs/manual_tecnico.md` | Quien instala y mantiene: arquitectura, modelo de datos, respaldo y solución de problemas |
+| `docs/registro_pruebas.md` | Regresión del Release 3 y resultado de los 25 casos de prueba del SRS |
+| `docs/trazabilidad_sprint1.md` a `sprint3.md` | Requisito → diseño → código → prueba |
+| `docs/desviaciones_sprint1.md` a `sprint3.md` | Diferencias contra el SRS y el SDD (D-01 a D-38) para el *Correction Register* |

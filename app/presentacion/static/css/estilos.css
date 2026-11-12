@@ -1,4 +1,4 @@
-/* ==============================================================
+/* =====================================================================
    PKG-01 Presentación · Hoja de estilos única
    Paleta y disposición tomadas de los wireframes del SDD (Figuras 27-36),
    que el SDD §6.1.3 define como contrato de construcción.
@@ -701,7 +701,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 }
 /* Si el día tiene cotizaciones, lo que aparta deja libre su carril de abajo */
 .linea-dia__pista:has(.linea-dia__bloque--cotiza) .linea-dia__bloque:not(.linea-dia__bloque--cotiza) { bottom: 1rem; }
-=======
+
 /* -------------------- IU-07 · Pagos de la ficha (HU-009) -------------------- */
 .pagos { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 860px) { .pagos { grid-template-columns: minmax(0, 1fr) 320px; } }
