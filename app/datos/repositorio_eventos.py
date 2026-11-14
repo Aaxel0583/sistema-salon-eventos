@@ -1,5 +1,6 @@
 """
-Repositorio de EVENTO y de las vistas IB-01, IB-10 e IB-11.
+Repositorio de EVENTO y de las vistas IB-01, IB-10 e IB-11 (el tablero toma
+sus cifras de cobranza de IB-08).
 
 C-10 · RNF-05 · DA-02 · HU-005 a HU-008
 La clave de proyecto (IB-07) y el costo (RN-09) los asigna la base al
@@ -158,18 +159,23 @@ class RepositorioEventos:
 
     def indicadores(self) -> dict:
         """
-        Cifras del tablero (IU-03), todas sobre la vista IB-01:
+        Cifras del tablero (IU-03):
         - activos: eventos en cotización o confirmados.
-        - por_cobrar: saldo de los eventos confirmados y realizados (compromisos
-          firmes); una cotización todavía no es una cuenta por cobrar.
         - finiquitados: eventos con la marca de finiquito.
+        - por_cobrar, vencido, por_vencer y sus conteos: salen de la vista de
+          cartera IB-08, la misma del reporte, para que ninguna pantalla
+          muestre una cifra distinta (SDD IU-08). Una cotización todavía no
+          es una cuenta por cobrar (D-14).
         """
         self._cur.execute(
-            """SELECT COUNT(*) FILTER (WHERE estado = ANY(%s))                         AS activos,
-                      COALESCE(SUM(saldo) FILTER (WHERE estado IN ('CONFIRMADO', 'REALIZADO')
-                                                    AND finiquitado = 'N'), 0)        AS por_cobrar,
-                      COUNT(*) FILTER (WHERE finiquitado = 'S')                       AS finiquitados
-                 FROM vw_evento_detalle""",
+            """SELECT (SELECT COUNT(*) FROM evento WHERE estado = ANY(%s))   AS activos,
+                      (SELECT COUNT(*) FROM evento WHERE finiquitado = 'S')  AS finiquitados,
+                      COALESCE(SUM(c.saldo), 0)                                              AS por_cobrar,
+                      (COUNT(*) FILTER (WHERE c.semaforo = 'VENCIDA'))::INTEGER              AS cuentas_vencidas,
+                      COALESCE(SUM(c.saldo) FILTER (WHERE c.semaforo = 'VENCIDA'), 0)        AS vencido,
+                      (COUNT(*) FILTER (WHERE c.semaforo = 'PROXIMA'))::INTEGER              AS cuentas_por_vencer,
+                      COALESCE(SUM(c.saldo) FILTER (WHERE c.semaforo = 'PROXIMA'), 0)        AS por_vencer
+                 FROM vw_cartera c""",
             (list(ESTADOS_ABIERTOS),),
         )
         return self._cur.fetchone()

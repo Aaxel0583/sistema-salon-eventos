@@ -307,6 +307,23 @@ class Evento:
         """IB-11 · RN-14: la fecha pasó y nadie ha dicho si se realizó."""
         return self.esta_abierto and self.fecha_evento < hoy
 
+    # ------------------------------ cobro (HU-009) ------------------------------
+    @property
+    def admite_pagos(self) -> bool:
+        """
+        RN-05 · espejo de IB-06: se puede abonar mientras haya saldo y el
+        evento no esté cancelado. Quien autoriza o rechaza es la base.
+        """
+        return self.estado != ESTADO_CANCELADO and self.saldo > 0
+
+    def puede_confirmarse_al_abonar(self, hoy: date) -> bool:
+        """D-20: el anticipo es lo que aparta el salón; se ofrece confirmar en el mismo paso."""
+        return self.estado == ESTADO_COTIZACION and self.fecha_evento >= hoy
+
+    @property
+    def tiene_anticipo_sin_confirmar(self) -> bool:
+        return self.estado == ESTADO_COTIZACION and self.total_pagado > 0
+
     # ------------------------ ciclo de vida (SDD §5.3) ------------------------
     def estados_siguientes(self, hoy: date) -> list[str]:
         """
@@ -349,8 +366,18 @@ class Evento:
 
 # ---------------------------------------------------------------------
 # Pago · abono de un evento (composición con Evento)
-# Sprint 2: solo lectura, para que el cliente consulte sus pagos (RF-40).
+# Sprint 2: lectura, para que el cliente consulte sus pagos (RF-40).
+# Sprint 3: registro con control de saldo y finiquito (HU-009, IB-06).
 # ---------------------------------------------------------------------
+FORMAS_PAGO = {                   # RF-31 · «tipo» del abono (D-28)
+    "EFECTIVO": "Efectivo",
+    "TRANSFERENCIA": "Transferencia",
+    "TARJETA": "Tarjeta",
+    "DEPOSITO": "Depósito",
+    "CHEQUE": "Cheque",
+}
+
+
 @dataclass
 class Pago:
     id_pago: int
@@ -368,7 +395,55 @@ class Pago:
     @property
     def tipo_legible(self) -> str:
         """'TRANSFERENCIA' o 'pago_inicial' -> 'Transferencia', 'Pago inicial'."""
-        return self.tipo.replace("_", " ").strip().capitalize()
+        return FORMAS_PAGO.get(self.tipo) or self.tipo.replace("_", " ").strip().capitalize()
+
+
+# ---------------------------------------------------------------------
+# Reportes operativos (HU-010 a HU-012) · filas de las vistas IB-08 e IB-09
+# ---------------------------------------------------------------------
+SEMAFORO_VENCIDA = "VENCIDA"
+SEMAFORO_PROXIMA = "PROXIMA"
+SEMAFORO_VIGENTE = "VIGENTE"
+
+SEMAFOROS = {                     # RN-13 · espejo de vw_cartera, en orden de urgencia
+    SEMAFORO_VENCIDA: "Vencida",
+    SEMAFORO_PROXIMA: "Próxima a vencer",
+    SEMAFORO_VIGENTE: "Vigente",
+}
+DIAS_CORTE_CARTERA = 21           # RN-13 · mismo valor que la vista IB-08
+
+
+@dataclass
+class CuentaCartera(Evento):
+    """Fila de IB-08 (vw_cartera): un evento con saldo y su semáforo."""
+
+    dias_para_evento: int = 0
+    semaforo: str = SEMAFORO_VIGENTE
+
+    @property
+    def semaforo_legible(self) -> str:
+        return SEMAFOROS.get(self.semaforo, self.semaforo)
+
+    @property
+    def plazo(self) -> str:
+        """«Hace 3 días», «Hoy», «En 5 días»: lo que el gerente necesita para priorizar."""
+        dias = self.dias_para_evento
+        if dias == 0:
+            return "Hoy"
+        if dias < 0:
+            return "Hace 1 día" if dias == -1 else f"Hace {-dias} días"
+        return "En 1 día" if dias == 1 else f"En {dias} días"
+
+
+@dataclass
+class ProyectoActivo(Evento):
+    """Fila de IB-09 (vw_proyectos_activos)."""
+
+    porcentaje_aforo: int = 0
+
+    @property
+    def aforo(self) -> str:
+        return f"{self.num_asistentes} de {self.capacidad_maxima}"
 
 
 # ---------------------------------------------------------------------
@@ -419,6 +494,9 @@ ACCIONES_BITACORA = {
     "ALTA_EVENTO": "Registro de evento",
     "CAMBIO_ESTATUS": "Cambio de estatus de evento",
     "ASIGNAR_GERENTE": "Asignación de gerente",
+    "REGISTRO_PAGO": "Registro de pago",
+    "FINIQUITO": "Finiquito de evento",
+    "DESCARGA_REPORTE": "Descarga de reporte",
     "ALTA_GERENTE_CONSOLA": "Alta de gerente (consola)",
     "REGENERAR_CLAVE_CONSOLA": "Clave regenerada (consola)",
 }

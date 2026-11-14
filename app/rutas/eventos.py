@@ -1,5 +1,6 @@
 """
-Eventos · C-04 y C-08 · IU-06, IU-07 (parcial) · HU-005, HU-006
+Eventos · C-04 y C-08 · IU-06, IU-07 · HU-005, HU-006
+(el registro de abonos de IU-07 está en rutas/pagos.py, C-05)
 /eventos · /eventos/nuevo · /eventos/<id> · /eventos/<id>/estado  (SDD Anexo A)
 
 Tras registrar un evento:
@@ -11,7 +12,7 @@ Tras registrar un evento:
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app.datos.errores import ErrorDominio
-from app.dominio.modelos import ESTADOS_EVENTO
+from app.dominio.modelos import ESTADOS_EVENTO, FORMAS_PAGO
 from app.seguridad.decoradores import solo_gerente
 from app.seguridad.sesion import usuario_actual
 from app.servicios.servicio_catalogos import ServicioSalones
@@ -95,17 +96,26 @@ def registrar():
 
 
 # ------------------------------ Ficha ------------------------------
-@bp.get("/<int:id_evento>")
-@solo_gerente
-def ficha(id_evento: int):
+def presentar_ficha(id_evento: int, abono: dict | None = None, estado: int = 200):
+    """
+    IU-07. La usa también rutas/pagos.py cuando un abono se rechaza, para
+    devolver la ficha con lo que el gerente había capturado (RNF-12).
+    """
     try:
-        evento, paquete, gerentes, hoy = _eventos.obtener(id_evento)
+        evento, paquete, gerentes, hoy, pagos = _eventos.obtener(id_evento)
     except ErrorDominio as error:
         flash(error.mensaje, "error")
         return redirect(url_for("eventos.listado"))
     return render_template("eventos/ficha.html", evento=evento, paquete=paquete,
-                           gerentes=gerentes, hoy=hoy, estados=ESTADOS_EVENTO,
-                           siguientes=evento.estados_siguientes(hoy))
+                           gerentes=gerentes, hoy=hoy, estados=ESTADOS_EVENTO, pagos=pagos,
+                           formas_pago=FORMAS_PAGO, siguientes=evento.estados_siguientes(hoy),
+                           abono=abono or {}), estado
+
+
+@bp.get("/<int:id_evento>")
+@solo_gerente
+def ficha(id_evento: int):
+    return presentar_ficha(id_evento)
 
 
 @bp.post("/<int:id_evento>")

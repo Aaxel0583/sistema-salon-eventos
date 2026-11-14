@@ -4,7 +4,8 @@
 -- cero. NUNCA ejecutar sobre la base del cliente.
 -- =====================================================================
 BEGIN;
-DROP VIEW IF EXISTS vw_pendientes_cierre, vw_ocupacion_salon, vw_evento_detalle CASCADE;
+DROP VIEW IF EXISTS vw_cartera, vw_proyectos_activos, vw_proyectos_realizados,
+                    vw_pendientes_cierre, vw_ocupacion_salon, vw_evento_detalle CASCADE;
 DROP TABLE IF EXISTS bitacora, pago, evento, paquete_platillo, paquete,
                      platillo, salon, usuario CASCADE;
 DROP FUNCTION IF EXISTS fn_validar_limite_salones() CASCADE;
@@ -16,4 +17,10 @@ DROP FUNCTION IF EXISTS fn_calcular_costo_evento() CASCADE;
 DROP FUNCTION IF EXISTS fn_cotizar(INTEGER, INTEGER, INTEGER) CASCADE;
 DROP FUNCTION IF EXISTS fn_validar_aforo() CASCADE;
 DROP FUNCTION IF EXISTS fn_validar_disponibilidad() CASCADE;
+DROP FUNCTION IF EXISTS fn_validar_pago() CASCADE;
+DROP FUNCTION IF EXISTS fn_aplicar_finiquito() CASCADE;
+DROP FUNCTION IF EXISTS fn_pago_inalterable() CASCADE;
+DROP FUNCTION IF EXISTS fn_proteger_finiquito() CASCADE;
+DROP FUNCTION IF EXISTS fn_validar_costo_contra_pagos() CASCADE;
+DROP FUNCTION IF EXISTS fn_registrar_pago(INTEGER, NUMERIC, VARCHAR, VARCHAR) CASCADE;
 COMMIT;
