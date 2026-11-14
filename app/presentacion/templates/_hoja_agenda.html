@@ -1,0 +1,6 @@
+{# Hoja de agenda (DESIGN.md «Hoja de agenda»): `dia` es una fecha real, nunca decoración. #}
+<time class="hoja-agenda" datetime="{{ dia.isoformat() }}">
+  <span class="hoja-agenda__mes">{{ dia|mes_corto }}</span>
+  <span class="hoja-agenda__dia">{{ dia.day }}</span>
+  <span class="hoja-agenda__semana">{{ (dia|dia_semana)[:3] if corto else dia|dia_semana }}</span>
+</time>

@@ -10,11 +10,7 @@
 <div class="encabezado encabezado--accion">
   {# Hoja de agenda: la fecha de hoy, el motivo de "La Agenda del Salón" #}
   <div class="encabezado--agenda">
-    <time class="hoja-agenda" datetime="{{ t.hoy.isoformat() }}">
-      <span class="hoja-agenda__mes">{{ MESES[t.hoy.month - 1] }}</span>
-      <span class="hoja-agenda__dia">{{ t.hoy.day }}</span>
-      <span class="hoja-agenda__semana">{{ DIAS[t.hoy.weekday()] }}</span>
-    </time>
+    {% with dia = t.hoy %}{% include "_hoja_agenda.html" %}{% endwith %}
     <div>
       <h1>Panel</h1>
       <p class="resumen-panel">
@@ -29,6 +25,8 @@
   <a class="boton boton--primario" href="{{ url_for('eventos.nuevo') }}">Nueva reservación</a>
 </div>
 
+{# En el celular «Esta semana» va antes que «Pendientes»: es lo que se consulta de pie en el salón #}
+<div class="prioridades">
 <section class="panel" aria-labelledby="t-pendientes">
   <h2 id="t-pendientes">Pendientes</h2>
   {% if t.hay_pendientes %}
@@ -74,7 +72,7 @@
               <th scope="row" class="tabla__titulo sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=e.id_evento) }}">{{ e.clave_proyecto }}</a></th>
               <td data-etiqueta="Evento">{{ e.titulo }} <span class="texto-suave">· {{ e.estado_legible }}</span></td>
               <td data-etiqueta="Salón" class="sin-corte">{{ e.nombre_salon }}</td>
-              <td data-etiqueta="Fecha" class="tabla__estado cifra cifra--roja">{{ e.fecha_evento|fecha }}</td>
+              <td data-etiqueta="Fecha" class="tabla__estado cifra cifra--ambar">{{ e.fecha_evento|fecha }}</td>
               <td data-etiqueta="Saldo" class="cifra numero">{{ e.saldo|moneda }}</td>
               <td class="tabla__accion">
                 <div class="acciones-linea">
@@ -106,6 +104,27 @@
     <p class="texto-suave">Nada pendiente: no hay cuentas bloqueadas, los tres salones están disponibles y ningún evento vencido sigue abierto.</p>
   {% endif %}
 </section>
+
+<section class="panel panel--semana" aria-labelledby="t-semana">
+  <h2 id="t-semana">Esta semana</h2>
+  {% if t.semana %}
+    <ul class="semana">
+      {% for e in t.semana %}
+        <li class="semana__evento">
+          {% with dia = e.fecha_evento, corto = true %}{% include "_hoja_agenda.html" %}{% endwith %}
+          <div class="semana__datos">
+            <a href="{{ url_for('eventos.ficha', id_evento=e.id_evento) }}">{{ e.titulo }}</a>
+            <span class="texto-suave">{{ e.horario }} · {{ e.nombre_salon }} · {{ e.num_asistentes }} invitados</span>
+          </div>
+          <span class="semana__estado">{% include "eventos/_estado.html" %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="texto-suave">No hay eventos en los próximos 7 días.</p>
+  {% endif %}
+</section>
+</div>
 
 <div class="dos-columnas">
   <section class="panel" aria-labelledby="t-ocupacion">

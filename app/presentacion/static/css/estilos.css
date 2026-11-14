@@ -19,12 +19,19 @@
   --fondo: #ffffff;
   --tinta: #1d2533;
   --tinta-suave: #555e6e;
-  --control-borde: #8090aa;   /* 3.2:1 sobre blanco: el campo se distingue */
+  --control-borde: #7d8da6;   /* 3.4:1 sobre blanco y 3.2:1 sobre los paneles */
   --control-borde-hover: #5f6f8a;
   --verde: #3d7a28;   --verde-fondo: #e5efdf;
   --ambar: #b8860b;   --ambar-fondo: #fdf2dc;  --ambar-borde: #d4a017;
   --rojo: #c00000;    --rojo-fondo: #fbeaea;
   --gris: #6b7280;    --gris-fondo: #eceff3;
+  --tinta-etiqueta: #444c5a;                        /* etiquetas de formulario */
+  --linea: #e3e9f2;   --linea-suave: #dbe3ef;       /* separadores dentro de paneles */
+  --verde-hondo: #2f6320; --verde-texto: #24481a;   /* verde sobre fondo verde: 6:1 o más */
+  --ambar-texto: #8a6400; --ambar-hondo: #6e5200;   /* el ámbar base nunca va como texto */
+  --rojo-borde: #d06060;  --rojo-hondo: #990000; --rojo-texto: #6b0000;
+  --azul-seleccion: #edf3fb; --gris-borde: #d1d5db; --lema-suave: #cfdaee; --linea-datos: #cfd9e8;
+  --foco-barra: #7fa7d6;     --nav-texto: #d6e0f0;
   --radio-control: 6px;
   --radio-panel: 10px;
   --sombra-1: 0 1px 2px rgba(31, 56, 100, .06), 0 1px 3px rgba(31, 56, 100, .05);
@@ -54,7 +61,7 @@ a  { color: var(--azul); }
 
 /* Foco con 3:1 o más: azul sobre fondos claros, azul claro sobre la barra marino */
 :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
-.barra :focus-visible { outline-color: #7fa7d6; }
+.barra :focus-visible { outline-color: var(--foco-barra); }
 ::selection { background: var(--azul-claro); color: var(--marino); }
 input, textarea { caret-color: var(--azul); }
 
@@ -79,7 +86,7 @@ input, textarea { caret-color: var(--azul); }
 .barra__nav { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem; }
 .barra__nav > a, .menu-usuario summary {
   display: inline-flex; align-items: center; gap: .45rem; min-height: 44px;
-  color: #d6e0f0; text-decoration: none; padding: 0 .75rem; border-radius: var(--radio-control);
+  color: var(--nav-texto); text-decoration: none; padding: 0 .75rem; border-radius: var(--radio-control);
   transition: color var(--rapido) var(--curva), background-color var(--rapido) var(--curva);
 }
 .barra__nav > a:hover { color: #fff; background: rgba(255,255,255,.08); }
@@ -110,7 +117,7 @@ input, textarea { caret-color: var(--azul); }
   border-radius: var(--radio-control); transition: background-color var(--rapido) var(--curva);
 }
 .menu-usuario__lista a:hover, .menu-usuario__lista button:hover { background: var(--panel); }
-.menu-usuario__lista form { border-top: 1px solid #e3e9f2; margin-top: .3rem !important; padding-top: .3rem; }
+.menu-usuario__lista form { border-top: 1px solid var(--linea); margin-top: .3rem !important; padding-top: .3rem; }
 .menu-usuario__lista form:first-child { border-top: 0; margin-top: 0 !important; padding-top: 0; }
 .menu-usuario__lista form { margin: 0; }
 
@@ -133,19 +140,19 @@ input, textarea { caret-color: var(--azul); }
 
 /* ----------------------------- Avisos ------------------------------ */
 .aviso { padding: .75rem 1rem; border-radius: var(--radio-control); margin-bottom: 1rem; animation: entrar 220ms var(--curva) both; }
-.aviso--error { background: var(--rojo-fondo); border-left: 6px solid var(--rojo); color: #6b0000; }
-.aviso--aviso { background: var(--ambar-fondo); border: 1px solid var(--ambar-borde); border-left-width: 6px; color: #6e5200; }
-.aviso--exito { background: var(--verde-fondo); border-left: 6px solid var(--verde); color: #24481a; }
+.aviso--error { background: var(--rojo-fondo); border-left: 6px solid var(--rojo); color: var(--rojo-texto); }
+.aviso--aviso { background: var(--ambar-fondo); border: 1px solid var(--ambar-borde); border-left-width: 6px; color: var(--ambar-hondo); }
+.aviso--exito { background: var(--verde-fondo); border-left: 6px solid var(--verde); color: var(--verde-texto); }
 
 /* --------------------------- Formularios --------------------------- */
 .formulario { display: flex; flex-direction: column; gap: .35rem; }
-.formulario label, .formulario legend { font-weight: 600; color: #444c5a; margin-top: .5rem; }
+.formulario label, .formulario legend { font-weight: 600; color: var(--tinta-etiqueta); margin-top: .5rem; }
 .formulario .boton--primario { margin-top: 1rem; }
 
 .formulario-linea { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
 .formulario-linea .campo, .fila-campos .campo { display: flex; flex-direction: column; gap: .25rem; min-width: 0; flex: 1 1 200px; }
 .formulario-linea .campo--ancho { flex: 2 1 260px; }
-.formulario-linea label { font-weight: 600; color: #444c5a; }
+.formulario-linea label { font-weight: 600; color: var(--tinta-etiqueta); }
 .acciones-formulario { display: flex; gap: .5rem; }
 .fila-campos { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
 
@@ -179,7 +186,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .segmento:hover { border-color: var(--control-borde-hover); }
 .segmento input { accent-color: var(--azul); }
 /* Anillo interior en vez de borde de 2px: marcar no desplaza el texto */
-.segmento:has(input:checked) { border-color: var(--azul); box-shadow: inset 0 0 0 1px var(--azul); background: #edf3fb; color: var(--azul) !important; }
+.segmento:has(input:checked) { border-color: var(--azul); box-shadow: inset 0 0 0 1px var(--azul); background: var(--azul-seleccion); color: var(--azul) !important; }
 
 /* Condiciones de la clave nueva (Figura 28) */
 .reglas {
@@ -208,18 +215,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   transition: background-color var(--rapido) var(--curva), border-color var(--rapido) var(--curva),
               color var(--rapido) var(--curva), box-shadow var(--rapido) var(--curva), transform 100ms var(--curva);
 }
-.boton:hover { background: #edf3fb; }
+.boton:hover { background: var(--azul-seleccion); }
 .boton:active:not(:disabled) { transform: scale(.97); }
 .boton--primario { background: var(--azul); color: #fff; box-shadow: var(--sombra-1); }
 .boton--primario:hover { background: var(--azul-hover); box-shadow: var(--sombra-2); }
-.boton--peligro { color: var(--rojo); border-color: #d06060; }   /* borde 3.9:1 sobre blanco */
+.boton--peligro { color: var(--rojo); border-color: var(--rojo-borde); }   /* borde 3.9:1 sobre blanco */
 .boton--peligro-lleno { background: var(--rojo); border-color: var(--rojo); color: #fff; }
-.boton--peligro-lleno:hover { background: #990000; }
+.boton--peligro-lleno:hover { background: var(--rojo-hondo); }
 .boton--peligro:hover { background: var(--rojo-fondo); }
 .boton--texto { background: transparent; border-color: transparent; padding: .5rem .6rem; }
 .boton--pequeno { min-height: 36px; padding: .3rem .8rem; font-size: .9rem; }
 .boton--ancho { width: 100%; }
-.boton:disabled { background: var(--gris-fondo); color: var(--gris); border-color: #d1d5db; cursor: not-allowed; box-shadow: none; }
+.boton:disabled { background: var(--gris-fondo); color: var(--gris); border-color: var(--gris-borde); cursor: not-allowed; box-shadow: none; }
 /* En pantallas táctiles el botón pequeño conserva el área mínima de 44 px */
 @media (pointer: coarse) { .boton--pequeno { min-height: 44px; } }
 
@@ -247,8 +254,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   display: flex; flex-direction: column; justify-content: center;
 }
 .acceso__lema { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 700; line-height: 1.2; margin-bottom: 1rem; }
-.acceso__descripcion { color: #cfdaee; max-width: 34ch; }
-.acceso__negocio { margin: 2rem 0 0; color: #9eb6dd; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; font-size: .9rem; }
+.acceso__descripcion { color: var(--lema-suave); max-width: 34ch; }
+.acceso__negocio { margin: 2rem 0 0; color: var(--azul-borde); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; font-size: .9rem; }
 @media (min-width: 820px) { .acceso__negocio { margin-top: auto; } .acceso__marca { justify-content: flex-start; padding-top: 22vh; } }
 .acceso__formulario {
   width: 100%; max-width: 460px; margin: 0 auto; padding: 2.5rem 1.5rem;
@@ -260,7 +267,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 @media (min-width: 900px) { .cambio-clave { grid-template-columns: minmax(0, 460px) 200px; align-items: center; } }
 .cambio-clave h1 { text-align: center; }
 .cambio-clave__formulario > .texto-suave { text-align: center; }
-.cambio-clave__aviso { color: #8a6400; font-size: .9rem; text-align: center; margin: 0; }
+.cambio-clave__aviso { color: var(--ambar-texto); font-size: .9rem; text-align: center; margin: 0; }
 
 /* ----------------------------- IU-03 ------------------------------- */
 /* Resumen compacto: los conteos informan, los pendientes mandan */
@@ -276,7 +283,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .lista-simple { list-style: none; margin: 0; padding: 0; }
 .lista-simple li {
   display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .25rem .75rem;
-  padding: .6rem 0; border-bottom: 1px solid #dbe3ef;
+  padding: .6rem 0; border-bottom: 1px solid var(--linea-suave);
 }
 .lista-simple li:last-child { border-bottom: 0; }
 .lista-simple--compacta li { padding: .4rem 0; font-size: .9rem; }
@@ -289,28 +296,28 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   background: var(--verde-fondo); border: 2px solid var(--verde);
   border-radius: var(--radio-panel); padding: 1rem 1.25rem; margin-bottom: 1rem;
 }
-.clave-generada h2 { color: #2f6320; margin-bottom: .6rem; }   /* 6.1:1 sobre el verde claro */
+.clave-generada h2 { color: var(--verde-hondo); margin-bottom: .6rem; }   /* 6.1:1 sobre el verde claro */
 .clave-generada__fila { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.25rem; }
 .clave-generada__valor {
   background: #fff; border: 2px solid var(--verde); border-radius: var(--radio-control);
   padding: .3rem 1.5rem; font-size: 1.35rem; font-weight: 700; letter-spacing: .12em; color: var(--marino);
   font-variant-numeric: tabular-nums;
 }
-.clave-generada__aviso { color: #6e5200; font-weight: 700; margin: .75rem 0 0; }
+.clave-generada__aviso { color: var(--ambar-hondo); font-weight: 700; margin: .75rem 0 0; }
 
 .tabla-desplazable { overflow-x: auto; border: 1px solid var(--azul-borde); border-radius: var(--radio-panel); margin-bottom: 1rem; box-shadow: var(--sombra-1); }
 .tabla { width: 100%; border-collapse: collapse; }
 .tabla th, .tabla td { text-align: left; padding: .65rem .85rem; vertical-align: middle; }
 .tabla th { background: var(--azul-claro); color: var(--marino); font-weight: 700; font-size: .92rem; white-space: nowrap; }
-.tabla td { border-top: 1px solid #e3e9f2; background: var(--panel-suave); transition: background-color var(--rapido) var(--curva); }
+.tabla td { border-top: 1px solid var(--linea); background: var(--panel-suave); transition: background-color var(--rapido) var(--curva); }
 .tabla tbody tr:hover td { background: #fff; }
 .estado { font-weight: 600; }
 .estado--verde { color: var(--verde); }
 .estado--rojo  { color: var(--rojo); }
 
 .etiqueta { display: inline-block; padding: .1rem .55rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
-.etiqueta--verde { background: var(--verde-fondo); color: var(--verde); }
-.etiqueta--ambar { background: var(--ambar-fondo); color: #8a6400; }
+.etiqueta--verde { background: var(--verde-fondo); color: var(--verde-hondo); }
+.etiqueta--ambar { background: var(--ambar-fondo); color: var(--ambar-texto); }
 .etiqueta--roja  { background: var(--rojo-fondo);  color: var(--rojo); }
 .etiqueta--gris  { background: var(--gris-fondo);  color: var(--tinta-suave); }
 .etiqueta--marino { background: var(--azul-claro); color: var(--marino); }
@@ -324,7 +331,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   transition: border-color var(--rapido) var(--curva), background-color var(--rapido) var(--curva), color var(--rapido) var(--curva);
 }
 /* Pestañas subrayadas: la activa se marca con tinta marino y barra azul, sin competir con el botón principal */
-.pestanas a:hover { border-color: var(--azul); background: #edf3fb; }
+.pestanas a:hover { border-color: var(--azul); background: var(--azul-seleccion); }
 .pestanas a[aria-current="page"] { background: var(--fondo); border-color: var(--azul-borde); color: var(--marino); box-shadow: inset 0 -3px 0 var(--azul); }
 
 .armador { display: grid; gap: 1rem; grid-template-columns: 1fr; align-items: start; }
@@ -332,13 +339,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 @media (max-width: 859px) { .armador > .formulario { order: -1; } }
 @media (min-width: 860px) { .armador { grid-template-columns: 1fr 1fr; } }
 .grupo-platillos { border: 0; padding: 0; margin: .9rem 0 0; }
-.grupo-platillos legend { font-weight: 700; color: #444c5a; margin-bottom: .2rem; }
+.grupo-platillos legend { font-weight: 700; color: var(--tinta-etiqueta); margin-bottom: .2rem; }
 
 .rejilla-salones { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .salon__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .6rem; }
 .salon__titulo h2 { margin: 0; }
 .datos { margin: .5rem 0 1rem; }
-.datos div { display: flex; justify-content: space-between; padding: .3rem 0; border-bottom: 1px dashed #cfd9e8; }
+.datos div { display: flex; justify-content: space-between; padding: .3rem 0; border-bottom: 1px dashed var(--linea-datos); }
 .datos dt { color: var(--tinta-suave); }
 .datos dd { margin: 0; font-weight: 600; }
 
@@ -358,9 +365,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .sin-corte { white-space: nowrap; }
 .cifra--roja  { color: var(--rojo); font-weight: 600; }
 .cifra--verde { color: var(--verde); font-weight: 600; }
-.cifra--ambar { color: #8a6400; font-weight: 700; }
+.cifra--ambar { color: var(--ambar-texto); font-weight: 700; }
 .campo--completo { flex-basis: 100% !important; }
-.campo--corto { flex: 1 1 110px !important; }
+.campo--corto { flex: 1 1 140px !important; }
 .fila-campos--horario { align-items: flex-start; }
 
 /* --------------------- IU-03 · Tablero (Figura 29) -------------------- */
@@ -374,12 +381,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 
 /* Medidor de aforo: <meter> nativo (sin estilos en línea, por la CSP) */
 .medidor { width: 100%; height: .7rem; -webkit-appearance: none; appearance: none;
-           background: #e2e8f0; border: 0; border-radius: 999px; overflow: hidden; }
-.medidor::-webkit-meter-bar { background: #e2e8f0; border: 0; border-radius: 999px; height: .7rem; }
+           background: var(--gris-fondo); border: 0; border-radius: 999px; overflow: hidden; }
+.medidor::-webkit-meter-bar { background: var(--gris-fondo); border: 0; border-radius: 999px; height: .7rem; }
 .medidor::-webkit-meter-optimum-value,
 .medidor::-webkit-meter-suboptimum-value,
-.medidor::-webkit-meter-even-less-good-value { background: var(--azul); border-radius: 999px; }
-.medidor::-moz-meter-bar { background: var(--azul); border-radius: 999px; }
+.medidor::-webkit-meter-even-less-good-value { background: var(--marino); border-radius: 999px; }
+.medidor::-moz-meter-bar { background: var(--marino); border-radius: 999px; }
 .medidor--alto::-webkit-meter-optimum-value,
 .medidor--alto::-webkit-meter-suboptimum-value,
 .medidor--alto::-webkit-meter-even-less-good-value { background: var(--rojo); }
@@ -393,13 +400,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-bottom: 1rem; }
 .filtros .campo { display: flex; flex-direction: column; gap: .25rem; flex: 1 1 170px; min-width: 0; }
 .filtros .campo--ancho { flex: 2 1 260px; }
-.filtros label { font-weight: 600; color: #444c5a; }
+.filtros label { font-weight: 600; color: var(--tinta-etiqueta); }
 
 /* -------------------- IU-06 · Reservación (Figura 32) -------------------- */
 .reservacion { display: grid; gap: 1rem 1.5rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 900px) { .reservacion { grid-template-columns: minmax(0, 1fr) 320px; } }
 .reservacion__captura { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
-.reservacion__captura label { font-weight: 600; color: #444c5a; }
+.reservacion__captura label { font-weight: 600; color: var(--tinta-etiqueta); }
 .reservacion .aviso { margin-bottom: 0; }
 
 .bloque-cliente { margin: 0; display: flex; flex-direction: column; gap: .5rem; }
@@ -415,9 +422,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .cotizacion dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
 .cotizacion__total { border-top: 1px solid var(--azul-borde); padding-top: .4rem; }
 .cotizacion__total dt { color: var(--marino); font-weight: 700; }
-.cotizacion__total dd { font-size: 1.5rem; font-weight: 700; color: var(--marino); }
+.cotizacion__total dd { font-size: 1.6rem; font-weight: 700; color: var(--marino); }
 .cotizacion__lugares dd.excedido { color: var(--rojo); }
-.cotizacion__lugares dd.justo { color: #8a6400; }
+.cotizacion__lugares dd.justo { color: var(--ambar-texto); }
 .cotizacion .boton--primario { margin-top: .4rem; }
 .cotizacion__motivo { text-align: center; margin: -.2rem 0 0; }
 .cotizacion .enlace-cancelar { align-self: center; }
@@ -427,11 +434,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .agenda-dia {
   padding: .85rem 1rem; background: var(--panel-suave);
   border: 1px solid var(--azul-borde); border-radius: var(--radio-control);
+  transition: background-color var(--rapido) var(--curva), border-color var(--rapido) var(--curva);
 }
 .agenda-dia--ocupada { background: var(--ambar-fondo); border-color: var(--ambar-borde); border-left-width: 6px; }
 .agenda-dia h2 { font-size: 1rem; margin-bottom: .25rem; }
 .agenda-dia__estado { margin: 0; }
-.agenda-dia--ocupada .agenda-dia__estado { color: #5c4500; }
+.agenda-dia--ocupada .agenda-dia__estado { color: var(--ambar-hondo); }
 .agenda-dia__lista { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .3rem; }
 .agenda-dia__lista:empty { display: none; }
 .agenda-dia__lista li { display: flex; flex-wrap: wrap; gap: .15rem .75rem; overflow-wrap: anywhere; }
@@ -441,10 +449,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 /* -------------------- IU-09 · Mis eventos (portal del cliente) -------------------- */
 .grupo-eventos + .grupo-eventos { margin-top: 1.5rem; }
 .eventos-cliente { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+/* Toda la tarjeta es el enlace (el ::after del título la cubre) y responde al cursor */
 .evento-cliente {
-  padding: .9rem 1.25rem; background: var(--panel); border: 1px solid var(--azul-borde);
+  position: relative; padding: .9rem 1.25rem; background: var(--panel); border: 1px solid var(--azul-borde);
   border-radius: var(--radio-panel); box-shadow: var(--sombra-1);
+  transition: border-color var(--rapido) var(--curva), box-shadow 200ms var(--curva), transform 200ms var(--curva);
 }
+.evento-cliente:hover { border-color: var(--azul); box-shadow: var(--sombra-2); transform: translateY(-2px); }
+.evento-cliente__titulo::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.evento-cliente__saldo strong { color: var(--marino); }
 .evento-cliente__cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .25rem 1rem; }
 .evento-cliente__titulo {
   display: inline-flex; align-items: center; min-height: 44px; min-width: 0;
@@ -464,8 +477,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .cabecera-evento__estado { display: flex; gap: .4rem; padding-bottom: .3rem; }
 .datos__total { border-bottom: 0 !important; padding-top: .55rem !important; align-items: baseline; }
 .datos__total dt { color: var(--marino) !important; font-weight: 700; }
-.datos__total dd { font-size: 1.25rem; }
-.panel .formulario-linea + .formulario-linea { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dbe3ef; }
+.datos__total dd { font-size: 1.4rem; color: var(--marino); }
+.panel .formulario-linea + .formulario-linea { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--linea-suave); }
 
 /* ---------------------------- Transiciones ---------------------------- */
 /* Cambio de pantalla: cross-document View Transitions, solo CSS. La barra
@@ -511,6 +524,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   .boton:active:not(:disabled) { transform: none; }
   .menu-usuario summary::after { transition: none; }
   .dialogo, .dialogo[open] { transform: none; }
+  .evento-cliente:hover { transform: none; }
+  @keyframes temblar { from { opacity: .6; } }
+  .linea-dia__bloque { transition-property: background-color, border-color; }
   @starting-style { .dialogo[open] { transform: none; } }
 }
 
@@ -529,8 +545,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 @media (min-width: 860px) { .resumen-paquete { position: sticky; top: .75rem; z-index: 1; } }
 .filtro-cliente { margin-bottom: .35rem; }
 .campo-nota { flex-basis: 100%; margin: 0; }
-.tabla tbody th { background: var(--panel-suave); color: var(--tinta); font-weight: 600; font-size: 1rem; white-space: normal; border-top: 1px solid #e3e9f2; }
+.tabla tbody th { background: var(--panel-suave); color: var(--tinta); font-weight: 600; font-size: 1rem; white-space: normal; border-top: 1px solid var(--linea); }
 .tabla tbody tr:hover th { background: #fff; }
+.tabla tbody th.sin-corte { white-space: nowrap; }
 .tabla__telefono { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* ------------- Celular: pestañas parejas y la tabla en tarjetas ------------- */
@@ -552,7 +569,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   .tabla--tarjetas .numero { text-align: left; }
   .tabla--tarjetas td[data-etiqueta]:not(.tabla__estado) { grid-column: 1 / -1; color: var(--tinta-suave); font-size: .9rem; }
   .tabla--tarjetas td[data-etiqueta]:not(.tabla__estado)::before { content: attr(data-etiqueta) ": "; color: var(--tinta-suave); }
-  .tabla--tarjetas .tabla__accion { grid-column: 1 / -1; margin-top: .25rem; padding-top: .25rem; border-top: 1px solid #e3e9f2; }
+  .tabla--tarjetas .tabla__evento { grid-column: 1 / -1; }
+  .tabla--tarjetas .tabla__accion { grid-column: 1 / -1; margin-top: .25rem; padding-top: .25rem; border-top: 1px solid var(--linea); }
 }
 
 /* ----------------- Hoja de agenda (motivo "La Agenda del Salón") ----------------- */
@@ -566,3 +584,120 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .hoja-agenda__mes { width: 100%; padding: .2rem 0; text-align: center; background: var(--marino); color: #fff; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .hoja-agenda__dia { padding-top: .2rem; font-size: 1.6rem; font-weight: 700; color: var(--marino); }
 .hoja-agenda__semana { padding-bottom: .3rem; font-size: .8rem; color: var(--tinta-suave); }
+
+/* ------------------- Ficha y portal: la fecha al frente ------------------- */
+.cabecera-evento .encabezado--agenda { align-items: flex-end; }
+.cabecera-evento__fecha { margin: .25rem 0 0; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+.cuenta-regresiva {
+  display: inline-flex; align-items: center; margin: .5rem 0 0; padding: .15rem .65rem; border-radius: 999px;
+  background: var(--azul-claro); color: var(--marino); font-weight: 700; font-size: .9rem; font-variant-numeric: tabular-nums;
+}
+.contacto-salon { margin-top: 1rem; color: var(--tinta-suave); }
+.gestion__etiqueta { margin: 0 0 .35rem; font-weight: 600; color: var(--tinta-etiqueta); }
+.acciones-estatus { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.acciones-estatus form { margin: 0; }
+.vacio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; }
+.vacio p { margin: 0; }
+.grupo-eventos > h2 { margin-bottom: .6rem; }
+
+/* Cotización inválida: mientras una regla falle, el total no se lee como oferta */
+.cotizacion:has([data-motivo]:not([hidden])) [data-cot-total] { color: var(--tinta-suave); text-decoration: line-through; }
+
+/* --------------- Overdrive · línea del día (agenda del salón) ---------------
+   Pista de horas con los eventos como bloques y el horario capturado como bloque
+   fantasma. Marino = aparta el salón; punteado = cotización (no aparta); rojo = choque. */
+.linea-dia { margin: .6rem 0 .5rem; }
+.linea-dia[hidden] { display: none; }
+.linea-dia__pista {
+  position: relative; height: 2.25rem; overflow: hidden;
+  background-color: var(--fondo); border: 1px solid var(--control-borde); border-radius: var(--radio-control);
+  /* rayas de hora: la pista es una regla de medir, no decoración */
+  background-image: linear-gradient(to right, var(--linea) 1px, transparent 1px);
+  background-size: calc(100% / var(--horas, 18)) 100%;
+}
+.linea-dia__bloque {
+  position: absolute; top: .3rem; bottom: .3rem; min-width: 4px; border-radius: var(--radio-control);
+  background: var(--marino); border: 1px solid var(--marino);
+  transition: left 180ms var(--curva), width 180ms var(--curva),
+              background-color var(--rapido) var(--curva), border-color var(--rapido) var(--curva);
+}
+.linea-dia__bloque--cotiza { top: auto; height: .55rem; background: var(--azul-claro); border: 1px dashed var(--marino); }
+.linea-dia__bloque--fantasma { background: rgba(43, 112, 175, .18); border: 2px solid var(--azul); z-index: 1; }
+/* El choque se ve aunque caiga sobre un bloque marino: franjas rojas y blancas opacas */
+.linea-dia__bloque--choca {
+  background: repeating-linear-gradient(135deg, var(--rojo) 0 5px, var(--fondo) 5px 10px);
+  border-color: var(--rojo); animation: temblar 260ms var(--curva);
+}
+.linea-dia__horas { position: relative; height: 1.2rem; margin-top: .15rem; font-size: .8rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
+.linea-dia__horas span { position: absolute; top: 0; transform: translateX(-50%); }
+.linea-dia__horas span:first-child { transform: none; }
+.linea-dia__horas span:last-child { transform: translateX(-100%); }
+@keyframes temblar { 25% { translate: -3px 0; } 50% { translate: 3px 0; } 75% { translate: -2px 0; } }
+
+/* ------------- Celular: la cotización es una barra fija abajo ------------- */
+@media (max-width: 899px) {
+  .cotizacion {
+    position: sticky; bottom: 0; z-index: 5; margin: 0 -1rem;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .1rem .75rem;
+    padding: .65rem 1rem; border-radius: var(--radio-panel) var(--radio-panel) 0 0;
+    box-shadow: 0 -4px 16px rgba(31, 56, 100, .14);
+  }
+  .cotizacion > h2, .cotizacion__desglose, .cotizacion > .nota:not(.cotizacion__motivo):not(.cotizacion__aparta) { display: none; }
+  /* Total en su propia fila: ninguna cifra de seis dígitos queda debajo del botón */
+  .cotizacion__total { grid-column: 1 / -1; border: 0; padding: 0; }
+  .cotizacion__lugares { grid-column: 1; grid-row: 2; border: 0; padding: 0; font-size: .9rem; }
+  .cotizacion dl div { padding: 0; }
+  .cotizacion__total dd { font-size: 1.4rem; }
+  .cotizacion__largo, .cotizacion .enlace-cancelar { display: none; }
+  .cotizacion__aparta { grid-column: 1 / -1; margin: 0; font-size: .8rem; }
+  .cotizacion .boton--primario { grid-column: 2; grid-row: 2; width: auto; margin: 0; }
+  .cotizacion__motivo { grid-column: 1 / -1; justify-self: start; text-align: left; margin: 0; }
+}
+/* Celular: fecha, horas e invitados de dos en dos para que «12:00 p. m.» quepa completo */
+@media (max-width: 640px) {
+  .fila-campos--horario > .campo { flex: 1 1 calc(50% - .5rem) !important; }
+}
+
+/* ------------------------- Panel · Esta semana ------------------------- */
+.semana { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.semana__evento {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .25rem .85rem;
+  padding: .5rem 0; border-bottom: 1px solid var(--linea-suave);
+}
+.semana__evento:last-child { border-bottom: 0; }
+.semana__evento .hoja-agenda { width: 3.25rem; }
+.semana__evento .hoja-agenda__dia { font-size: 1.1rem; }
+.semana__datos { display: flex; flex-direction: column; min-width: 0; }
+.semana__datos a { font-weight: 700; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .semana__evento { grid-template-columns: auto minmax(0, 1fr); }
+  .semana__estado { grid-column: 2; }
+}
+
+/* Listado: filtros plegables (en escritorio siempre abiertos y sin el botón) */
+.pliegue-filtros > summary { list-style: none; width: fit-content; margin-bottom: .75rem; cursor: pointer; }
+.pliegue-filtros > summary::-webkit-details-marker { display: none; }
+@media (min-width: 641px) { .pliegue-filtros > summary { display: none; } }
+
+/* Portal en el celular: la cuenta antes que «Tu evento» */
+@media (max-width: 859px) { .dos-columnas > .panel--cuenta { order: -1; } }
+
+/* Cotización que ya perdió su horario (D-20) y avisos en una línea */
+.aviso-linea { color: var(--ambar-hondo); font-weight: 600; }
+.solo-celular { display: none; }
+
+@media (max-width: 640px) {
+  .solo-celular { display: inline-flex; }
+  /* Panel: «Esta semana» antes que «Pendientes»; conteos en una fila que se desliza */
+  .prioridades { display: flex; flex-direction: column; }
+  .prioridades > .panel--semana { order: -1; }
+  .resumen-panel { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .resumen-panel a { flex: none; }
+  /* Tarjetas de eventos: la tarjeta entera abre la ficha y se omiten los campos vacíos */
+  .tabla--tarjetas tr { position: relative; }
+  .tabla--tarjetas .tabla__titulo a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+  .tabla--tarjetas .tabla__accion { position: relative; z-index: 1; }
+  .tabla--tarjetas .tabla__vacio { display: none !important; }
+}
+/* Si el día tiene cotizaciones, lo que aparta deja libre su carril de abajo */
+.linea-dia__pista:has(.linea-dia__bloque--cotiza) .linea-dia__bloque:not(.linea-dia__bloque--cotiza) { bottom: 1rem; }

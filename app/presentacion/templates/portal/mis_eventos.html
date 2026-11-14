@@ -21,12 +21,17 @@
             </div>
             <p class="evento-cliente__datos">
               <span class="cifra">{{ e.clave_proyecto }}</span> ·
-              <span class="cifra">{{ e.fecha_evento|fecha }}</span>, {{ e.horario }} · {{ e.nombre_salon }}
+              <span class="cifra">{{ e.fecha_evento|fecha_larga }}</span>, {{ e.horario }} · {{ e.nombre_salon }}
             </p>
-            {% if e.estado != 'CANCELADO' %}
+            {# Dinero por estatus (DESIGN.md): una cotización no es deuda y un cancelado no se cobra #}
+            {% if e.horario_tomado %}
+              <p class="evento-cliente__saldo aviso-linea">Esa fecha ya no está disponible: otro evento la apartó con anticipo.</p>
+            {% elif e.estado == 'COTIZACION' %}
+              <p class="evento-cliente__saldo">Total cotizado <strong class="cifra">{{ e.costo_total|moneda }}</strong></p>
+            {% elif e.estado != 'CANCELADO' %}
               <p class="evento-cliente__saldo">
                 {% if e.saldo > 0 %}
-                  Saldo pendiente <strong class="cifra cifra--ambar">{{ e.saldo|moneda }}</strong>
+                  Saldo pendiente <strong class="cifra">{{ e.saldo|moneda }}</strong>
                 {% else %}
                   <strong class="cifra--verde">Liquidado</strong>
                 {% endif %}
@@ -40,7 +45,7 @@
 {% else %}
   <section class="panel">
     <p>Aquí podrás consultar el salón, el menú contratado, tus pagos y tu saldo pendiente.</p>
-    <p class="texto-suave">Si ya reservaste y no ves tu evento, comunícate con el gerente del salón.</p>
+    <p class="texto-suave">Si ya reservaste y no ves tu evento, comunícate con el gerente del salón{% if telefono_negocio %}: <a href="tel:{{ telefono_negocio|replace(' ', '') }}">{{ telefono_negocio|contacto }}</a>{% endif %}.</p>
   </section>
 {% endif %}
 {% endblock %}

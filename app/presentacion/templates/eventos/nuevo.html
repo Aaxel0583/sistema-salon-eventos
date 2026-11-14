@@ -12,62 +12,17 @@
 {% block titulo %}Nueva reservación{% endblock %}
 {% block contenido %}
 {% set nuevo = datos.cliente_nuevo == 'S' or not clientes %}
-<div class="encabezado">
+<div class="encabezado encabezado--accion">
   <h1>Nueva reservación</h1>
+  {# En el celular la barra de cotización no tiene espacio para «Cancelar»: la salida va aquí #}
+  <a class="boton boton--texto solo-celular" href="{{ url_for('eventos.listado') }}">Cancelar</a>
 </div>
 
 <form method="post" action="{{ url_for('eventos.registrar') }}" class="reservacion" novalidate data-reservacion>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="reservacion__captura">
-    {# ---------------- Cliente: existente o alta rápida (RF-12) ---------------- #}
-    <fieldset class="panel panel--suave bloque-cliente">
-      <legend>Cliente</legend>
-
-      <div class="campo" data-cliente-existente {% if nuevo %}hidden{% endif %}>
-        <label for="id_cliente" class="solo-lector">Cliente</label>
-        <select id="id_cliente" name="id_cliente">
-          <option value="">Elige un cliente</option>
-          {% for c in clientes %}
-            <option value="{{ c.id_usuario }}" {% if (datos.id_cliente|string) == (c.id_usuario|string) %}selected{% endif %}>
-              {{ c.nombre }}{% if c.contacto %} · {{ c.contacto }}{% endif %}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <label class="casilla">
-        <input type="checkbox" id="cliente_nuevo" name="cliente_nuevo" value="S" {% if nuevo %}checked{% endif %}>
-        Cliente nuevo (se da de alta aquí)
-      </label>
-
-      <div class="formulario-linea" data-cliente-nuevo {% if not nuevo %}hidden{% endif %}>
-        <div class="campo campo--ancho">
-          <label for="nombre">Nombre del cliente</label>
-          <input type="text" id="nombre" name="nombre" value="{{ datos.nombre or '' }}" maxlength="120" autocomplete="off">
-        </div>
-        <div class="campo">
-          <label for="correo">Correo</label>
-          <input type="email" id="correo" name="correo" value="{{ datos.correo or '' }}" maxlength="120"
-                 autocomplete="off" spellcheck="false">
-        </div>
-        <div class="campo">
-          <label for="telefono">Celular</label>
-          <input type="tel" id="telefono" name="telefono" value="{{ datos.telefono or '' }}"
-                 inputmode="numeric" autocomplete="off" placeholder="10 dígitos">
-        </div>
-        <p class="nota campo--completo">Basta con el correo o el celular. Al guardar se genera su clave de acceso.</p>
-      </div>
-    </fieldset>
-
     {# ---------------- Datos del evento (RF-20) ---------------- #}
-    <div class="fila-campos">
-      <div class="campo campo--completo">
-        <label for="nombre_evento">Nombre del evento <span class="texto-suave">(opcional)</span></label>
-        <input type="text" id="nombre_evento" name="nombre_evento" value="{{ datos.nombre_evento or '' }}"
-               maxlength="120" placeholder="Ej. Boda Robles Márquez" autocomplete="off">
-      </div>
-    </div>
-
     <div class="fila-campos">
       <div class="campo">
         <label for="id_salon">Salón</label>
@@ -124,30 +79,88 @@
     {# RF-24 · Agenda del salón en la fecha capturada. La llena app.js; sin JavaScript
        no aparece y la regla se sigue cumpliendo al guardar. Ámbar = agenda ocupada
        (advertencia que no impide continuar, SDD Anexo C). #}
-    <section class="agenda-dia" aria-labelledby="t-agenda" aria-live="polite"
+    <section class="agenda-dia" aria-labelledby="t-agenda"
              data-agenda data-url="{{ url_for('agenda.consultar') }}" hidden>
       <h2 id="t-agenda" data-agenda-titulo>Agenda del salón</h2>
-      <p class="agenda-dia__estado" data-agenda-estado></p>
+      {# Overdrive · línea del día: los eventos como bloques sobre las horas y el horario
+         capturado como bloque fantasma que se pone rojo si se encima. Solo visual (aria-hidden):
+         la misma información está en texto en la lista de abajo. #}
+      <div class="linea-dia" data-linea-dia aria-hidden="true">
+        <div class="linea-dia__pista" data-linea-pista></div>
+        <div class="linea-dia__horas" data-linea-horas></div>
+      </div>
+      <p class="agenda-dia__estado" data-agenda-estado aria-live="polite"></p>
       <ul class="agenda-dia__lista" data-agenda-lista></ul>
     </section>
+
+    {# Quién reserva, al final: primero se confirma que el salón está libre #}
+    {# ---------------- Cliente: existente o alta rápida (RF-12) ---------------- #}
+    <fieldset class="panel panel--suave bloque-cliente">
+      <legend>Cliente</legend>
+
+      <div class="campo" data-cliente-existente {% if nuevo %}hidden{% endif %}>
+        <label for="id_cliente" class="solo-lector">Cliente</label>
+        <select id="id_cliente" name="id_cliente">
+          <option value="">Elige un cliente</option>
+          {% for c in clientes %}
+            <option value="{{ c.id_usuario }}" {% if (datos.id_cliente|string) == (c.id_usuario|string) %}selected{% endif %}>
+              {{ c.nombre }}{% if c.contacto %} · {{ c.contacto }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <label class="casilla">
+        <input type="checkbox" id="cliente_nuevo" name="cliente_nuevo" value="S" {% if nuevo %}checked{% endif %}>
+        Cliente nuevo (se da de alta aquí)
+      </label>
+
+      <div class="formulario-linea" data-cliente-nuevo {% if not nuevo %}hidden{% endif %}>
+        <div class="campo campo--ancho">
+          <label for="nombre">Nombre del cliente</label>
+          <input type="text" id="nombre" name="nombre" value="{{ datos.nombre or '' }}" maxlength="120" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="correo">Correo</label>
+          <input type="email" id="correo" name="correo" value="{{ datos.correo or '' }}" maxlength="120"
+                 autocomplete="off" spellcheck="false">
+        </div>
+        <div class="campo">
+          <label for="telefono">Celular</label>
+          <input type="tel" id="telefono" name="telefono" value="{{ datos.telefono or '' }}"
+                 inputmode="numeric" autocomplete="off" placeholder="10 dígitos">
+        </div>
+        <p class="nota campo--completo">Basta con el correo o el celular. Al guardar se genera su clave de acceso.</p>
+      </div>
+    </fieldset>
+
+    <div class="fila-campos">
+      <div class="campo campo--completo">
+        <label for="nombre_evento">Nombre del evento <span class="texto-suave">(opcional)</span></label>
+        <input type="text" id="nombre_evento" name="nombre_evento" value="{{ datos.nombre_evento or '' }}"
+               maxlength="120" placeholder="Ej. Boda Robles Márquez" autocomplete="off">
+      </div>
+    </div>
+
   </div>
 
   {# ---------------- Panel de cotización (RF-21, RF-23) ---------------- #}
-  <aside class="panel panel--suave cotizacion" aria-labelledby="t-cotizacion" aria-live="polite">
+  <aside class="panel panel--suave cotizacion" aria-labelledby="t-cotizacion">
     <h2 id="t-cotizacion">Cotización</h2>
     <dl class="cotizacion__desglose">
       <div><dt>Renta del salón</dt><dd data-cot-renta>—</dd></div>
       <div><dt data-cot-paquete-etiqueta>Paquete × 0 pers.</dt><dd data-cot-paquete>—</dd></div>
     </dl>
-    <dl class="cotizacion__total">
+    <dl class="cotizacion__total" aria-live="polite">
       <div><dt>Total</dt><dd data-cot-total>—</dd></div>
     </dl>
     <dl class="cotizacion__lugares">
-      <div><dt>Lugares disponibles</dt><dd data-cot-lugares>—</dd></div>
+      <div><dt>Lugares<span class="cotizacion__largo"> disponibles</span></dt><dd data-cot-lugares>—</dd></div>
     </dl>
     <p class="nota">Se recalcula al cambiar salón, paquete o número de invitados.</p>
 
-    <button type="submit" class="boton boton--primario boton--ancho" data-guardar>Guardar reservación</button>
+    <button type="submit" class="boton boton--primario boton--ancho" data-guardar>Guardar cotización</button>
+    {# D-27: se guarda una cotización; solo el anticipo aparta el salón (D-20) #}
+    <p class="nota cotizacion__aparta">La fecha se aparta cuando el cliente da el anticipo.</p>
     <p class="nota cotizacion__motivo" data-motivo hidden></p>
     <a class="enlace-cancelar" href="{{ url_for('eventos.listado') }}">Cancelar</a>
   </aside>

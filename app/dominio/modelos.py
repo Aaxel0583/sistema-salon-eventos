@@ -244,6 +244,7 @@ class Evento:
     nombre_paquete: str | None = None
     total_pagado: Decimal = Decimal("0")
     saldo: Decimal = Decimal("0")
+    apartado_por: str | None = None       # clave del evento que ya apartó este horario
 
     @classmethod
     def desde_fila(cls, fila: dict) -> "Evento":
@@ -275,6 +276,11 @@ class Evento:
     @property
     def contacto_cliente(self) -> str:
         return unir_contacto(self.correo_cliente, self.telefono_cliente)
+
+    @property
+    def horario_tomado(self) -> bool:
+        """D-20: una cotización cuyo horario ya apartó otro evento con anticipo; no puede confirmarse."""
+        return self.estado == ESTADO_COTIZACION and bool(self.apartado_por)
 
     @property
     def ocupa_salon(self) -> bool:

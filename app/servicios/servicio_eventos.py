@@ -14,7 +14,7 @@ datos estén completos y bien formados, se consulta la agenda para
 orientar la captura y se traduce la respuesta de la base.
 """
 from dataclasses import dataclass, field
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from app.datos.conexion import BaseDatos
 from app.datos.errores import ErrorNegocio, ErrorNoEncontrado, ErrorValidacion
@@ -120,6 +120,7 @@ class Tablero:
     paquetes: int
     hoy: date
     actividad: list[dict] = field(default_factory=list)
+    semana: list[Evento] = field(default_factory=list)   # próximos 7 días, sin cancelados
 
     @property
     def salones_no_disponibles(self) -> list[Salon]:
@@ -272,7 +273,13 @@ class ServicioEventos:
         """IU-03: indicadores, ocupación por salón (IB-10) y pendientes de cierre (IB-11)."""
         with BaseDatos.transaccion() as cur:
             eventos, usuarios = RepositorioEventos(cur), RepositorioUsuarios(cur)
+            hoy = eventos.hoy()
+            # «¿Qué hay esta semana?» es la consulta más frecuente del gerente desde el celular.
+            semana = sorted((e for e in eventos.listar()
+                             if e.esta_abierto and hoy <= e.fecha_evento <= hoy + timedelta(days=6)),
+                            key=lambda e: (e.fecha_evento, e.hora_inicio))
             return Tablero(
+                semana=semana,
                 indicadores=eventos.indicadores(),
                 ocupacion=eventos.ocupacion_por_salon(),
                 pendientes=eventos.pendientes_cierre(),
@@ -281,7 +288,7 @@ class ServicioEventos:
                 clientes=usuarios.contar_por_rol("CLIENTE"),
                 paquetes=RepositorioPaquetes(cur).contar(),
                 # La fecha sale de la base: su zona horaria es la del salón (conexion.py).
-                hoy=eventos.hoy(),
+                hoy=hoy,
                 # Los inicios de sesión son ruido para el gerente; siguen en la bitácora.
                 actividad=RepositorioBitacora(cur).recientes(10, excluir=("INICIO_SESION",)),
             )

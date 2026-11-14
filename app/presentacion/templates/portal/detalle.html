@@ -5,15 +5,31 @@
    el titular de la sesión (RF-39, RNF-06); aquí no se decide quién puede verlo. #}
 {% block titulo %}{{ evento.titulo }}{% endblock %}
 {% block contenido %}
+{% set dias = (evento.fecha_evento - hoy).days %}
 <div class="encabezado cabecera-evento">
-  <div>
-    <p class="cabecera-evento__miga"><a href="{{ url_for('portal.mis_eventos') }}">Mis eventos</a></p>
-    <h1>{{ evento.titulo }}</h1>
+  <div class="encabezado--agenda">
+    {% with dia = evento.fecha_evento %}{% include "_hoja_agenda.html" %}{% endwith %}
+    <div>
+      <p class="cabecera-evento__miga"><a href="{{ url_for('portal.mis_eventos') }}">Mis eventos</a></p>
+      <h1>{{ evento.titulo }}</h1>
+      <p class="cabecera-evento__fecha">{{ evento.fecha_evento|fecha_larga }} · {{ evento.horario }} · {{ evento.nombre_salon }}</p>
+      {# La cuenta regresiva es de un evento apartado; una cotización todavía no lo es #}
+      {% if evento.estado == 'CONFIRMADO' and dias >= 0 %}
+        <p class="cuenta-regresiva">{{ 'Es hoy' if dias == 0 else ('Es mañana' if dias == 1 else 'Faltan ' ~ dias ~ ' días') }}</p>
+      {% endif %}
+    </div>
   </div>
   <div class="cabecera-evento__estado">
     {% with e = evento %}{% include "eventos/_estado.html" %}{% endwith %}
   </div>
 </div>
+
+{% if evento.horario_tomado %}
+  <div class="aviso aviso--aviso" role="status">
+    Ese horario ya lo apartó otro evento con anticipo, así que esta cotización ya no puede confirmarse.
+    Comunícate con el salón para buscar otra fecha u otro horario.
+  </div>
+{% endif %}
 
 <div class="dos-columnas">
   <section class="panel" aria-labelledby="t-datos">
@@ -21,32 +37,21 @@
     <dl class="datos">
       <div><dt>Clave</dt><dd class="cifra">{{ evento.clave_proyecto }}</dd></div>
       <div><dt>Salón</dt><dd>{{ evento.nombre_salon }}</dd></div>
-      <div><dt>Fecha</dt><dd class="cifra">{{ evento.fecha_evento|fecha }}</dd></div>
-      <div><dt>Horario</dt><dd class="cifra">{{ evento.horario }}</dd></div>
       <div><dt>Invitados</dt><dd class="cifra">{{ evento.num_asistentes }}</dd></div>
       {% if evento.nombre_gerente %}<div><dt>Te atiende</dt><dd>{{ evento.nombre_gerente }}</dd></div>{% endif %}
     </dl>
   </section>
 
-  <section class="panel panel--suave" aria-labelledby="t-cuenta">
+  {# En el celular la cuenta va antes que «Tu evento»: la fecha ya está en la cabecera #}
+  <section class="panel panel--suave panel--cuenta" aria-labelledby="t-cuenta">
     <h2 id="t-cuenta">Estado de cuenta</h2>
-    <dl class="datos">
-      <div><dt>Costo total</dt><dd class="cifra">{{ evento.costo_total|moneda }}</dd></div>
-      <div><dt>Pagado</dt><dd class="cifra cifra--verde">{{ evento.total_pagado|moneda }}</dd></div>
-      <div class="datos__total"><dt>Saldo pendiente</dt>
-        <dd class="cifra {{ 'cifra--ambar' if evento.saldo > 0 and evento.estado != 'CANCELADO' else ('cifra--verde' if evento.saldo <= 0) }}">{{ evento.saldo|moneda }}</dd></div>
-    </dl>
-    {% if evento.esta_finiquitado %}
-      <p class="nota">Tu evento quedó liquidado{% if evento.fecha_finiquito %} el {{ evento.fecha_finiquito|fecha }}{% endif %}.</p>
-    {% elif evento.estado == 'CANCELADO' %}
-      <p class="nota">El evento está cancelado. Si tienes dudas sobre tus pagos, comunícate con el salón.</p>
-    {% endif %}
+    {% with e = evento, para_cliente = true %}{% include "eventos/_cuenta.html" %}{% endwith %}
   </section>
 </div>
 
 <div class="dos-columnas">
   <section class="panel" aria-labelledby="t-menu">
-    <h2 id="t-menu">Menú contratado{% if paquete %} · {{ paquete.nombre }}{% endif %}</h2>
+    <h2 id="t-menu">{{ 'Menú cotizado' if evento.estado == 'COTIZACION' else 'Menú contratado' }}{% if paquete %} · {{ paquete.nombre }}{% endif %}</h2>
     {% if paquete and paquete.platillos %}
       <dl class="menu">
         {% for categoria, lista in paquete.menu().items() %}
@@ -90,5 +95,5 @@
   </section>
 </div>
 
-<p class="nota">Si algo no coincide con lo que acordaste, comunícate con el salón.</p>
+{% include "portal/_contacto.html" %}
 {% endblock %}

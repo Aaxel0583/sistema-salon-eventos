@@ -60,7 +60,8 @@ def test_cp13_cliente_ve_solo_sus_eventos(cliente_http, dos_clientes):
     assert "Boda de Ana" in texto and propio.clave_proyecto in texto
     assert f'href="/mis-eventos/{propio.clave_proyecto}"' in texto
     assert "Graduación de Beto" not in texto and ajeno.clave_proyecto not in texto
-    assert "Cotización" in texto and "Saldo pendiente" in texto              # estatus y saldo (IU-09)
+    # Una cotización no es deuda (DESIGN.md «Dinero por estatus»): se muestra lo cotizado, no un saldo
+    assert "Cotización" in texto and "Total cotizado" in texto and "Saldo pendiente" not in texto
     assert "<form" not in texto.split('id="contenido"')[1].split("<dialog")[0]   # sin acciones de modificación
 
 
@@ -80,7 +81,9 @@ def test_cp13_detalle_con_menu_pagos_y_saldo(cliente_http, crear_usuario):
 
     # Resumen: salón, fecha, horario, invitados y estatus
     assert "XV de Sofía" in texto and "Salón Terraza" in texto and "14:00 a 19:00" in texto
-    assert f"{evento.fecha_evento:%d/%m/%Y}" in texto and "Confirmado" in texto
+    # La fecha va en la cabecera, en letra y con día de la semana (DESIGN.md «Fecha del evento»)
+    assert f" de {evento.fecha_evento.year}" in texto.split('class="cabecera-evento__fecha">')[1].split("<")[0]
+    assert "Confirmado" in texto
     # Menú del Paquete Ejecutivo (semilla), agrupado por categoría
     for parte in ("Paquete Ejecutivo", "Crema de elote", "Lomo de cerdo en salsa de ciruela",
                   "Pastel de tres leches", "Plato fuerte"):
@@ -171,4 +174,4 @@ def test_liquidado_cuando_el_saldo_llega_a_cero(cliente_http, crear_usuario):
     _entrar(cliente_http, correo, clave)
     assert "Liquidado" in cliente_http.get("/mis-eventos").get_data(as_text=True)
     detalle = cliente_http.get(f"/mis-eventos/{evento.clave_proyecto}").get_data(as_text=True)
-    assert "$0.00" in detalle
+    assert "Liquidado" in detalle.split('id="t-cuenta"')[1]          # saldo en cero se dice con palabra

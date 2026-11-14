@@ -16,6 +16,17 @@ from app.dominio.modelos import (ESTADO_CANCELADO, ESTADOS_ABIERTOS, Evento,
 
 LIMITE_LISTADO = 200        # filas del listado; la pantalla avisa al llegar aquí
 
+# Toda lectura de eventos agrega `apartado_por`: la clave del evento confirmado o
+# realizado que ya ocupa ese salón, fecha y horario. Solo le importa a una cotización
+# (D-20): si lo trae, ya no puede confirmarse y la pantalla debe decirlo.
+_SELECT = """SELECT v.*,
+       (SELECT o.clave_proyecto FROM evento o
+         WHERE o.id_salon = v.id_salon AND o.fecha_evento = v.fecha_evento
+           AND o.id_evento <> v.id_evento AND o.estado IN ('CONFIRMADO', 'REALIZADO')
+           AND o.hora_inicio < v.hora_fin AND v.hora_inicio < o.hora_fin
+         ORDER BY o.id_evento LIMIT 1) AS apartado_por
+  FROM vw_evento_detalle v"""
+
 
 def _patron_busqueda(texto: str) -> str:
     """Escapa los comodines para que "%" o "_" se busquen literalmente."""
@@ -38,7 +49,7 @@ class RepositorioEventos:
         return self._cur.fetchone()["hoy"]
 
     def por_id(self, id_evento: int) -> Evento | None:
-        self._cur.execute("SELECT * FROM vw_evento_detalle WHERE id_evento = %s", (id_evento,))
+        self._cur.execute(f"{_SELECT} WHERE id_evento = %s", (id_evento,))
         fila = self._cur.fetchone()
         return Evento.desde_fila(fila) if fila else None
 
@@ -70,7 +81,7 @@ class RepositorioEventos:
             parametros += [patron, patron, patron]
         donde = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
         self._cur.execute(
-            f"""SELECT * FROM vw_evento_detalle
+            f"""{_SELECT}
                 {donde}
                 ORDER BY (fecha_evento < CURRENT_DATE),
                          CASE WHEN fecha_evento >= CURRENT_DATE THEN fecha_evento END ASC,
@@ -88,7 +99,7 @@ class RepositorioEventos:
         aparece. Se apoya en el índice ix_evento_salon_fecha (RNF-02).
         """
         self._cur.execute(
-            """SELECT * FROM vw_evento_detalle
+            f"""{_SELECT}
                 WHERE id_salon = %s AND fecha_evento = %s AND estado <> %s
                 ORDER BY hora_inicio, id_evento""",
             (id_salon, fecha_evento, ESTADO_CANCELADO),
@@ -102,7 +113,7 @@ class RepositorioEventos:
         que el listado: primero los próximos, después los pasados.
         """
         self._cur.execute(
-            """SELECT * FROM vw_evento_detalle
+            f"""{_SELECT}
                 WHERE id_cliente = %s
                 ORDER BY (fecha_evento < CURRENT_DATE),
                          CASE WHEN fecha_evento >= CURRENT_DATE THEN fecha_evento END ASC,
@@ -118,7 +129,7 @@ class RepositorioEventos:
         existe son lo mismo.
         """
         self._cur.execute(
-            "SELECT * FROM vw_evento_detalle WHERE clave_proyecto = %s AND id_cliente = %s",
+            f"{_SELECT} WHERE clave_proyecto = %s AND id_cliente = %s",
             (clave_proyecto, id_cliente),
         )
         fila = self._cur.fetchone()

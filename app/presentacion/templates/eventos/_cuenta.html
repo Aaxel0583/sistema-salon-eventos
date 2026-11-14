@@ -1,0 +1,28 @@
+{# Estado de cuenta según el estatus (DESIGN.md «Dinero por estatus»).
+   Una cotización no es una deuda y un cancelado no se cobra: solo un evento
+   confirmado o realizado tiene saldo. `e` es el evento; `para_cliente` cambia el tono. #}
+<dl class="datos">
+{% if e.estado == 'COTIZACION' %}
+  <div class="datos__total"><dt>Total cotizado</dt><dd class="cifra">{{ e.costo_total|moneda }}</dd></div>
+</dl>
+<p class="nota">{{ 'Es una cotización: todavía no debes nada. Tu fecha se aparta cuando des el anticipo.' if para_cliente
+                   else 'Cotización: aún no hay nada por cobrar. El salón se aparta cuando el cliente dé el anticipo.' }}</p>
+{% elif e.estado == 'CANCELADO' %}
+  <div><dt>Costo cotizado</dt><dd class="cifra">{{ e.costo_total|moneda }}</dd></div>
+  <div><dt>Pagado</dt><dd class="cifra">{{ e.total_pagado|moneda }}</dd></div>
+</dl>
+<p class="nota">{{ 'El evento está cancelado: no hay saldo por pagar. Si tienes dudas sobre tus pagos, comunícate con el salón.' if para_cliente
+                   else 'Evento cancelado: no hay saldo por cobrar.' }}</p>
+{% else %}
+  <div><dt>Costo total</dt><dd class="cifra">{{ e.costo_total|moneda }}</dd></div>
+  <div><dt>Pagado</dt><dd class="cifra {{ 'cifra--verde' if e.total_pagado > 0 }}">{{ e.total_pagado|moneda }}</dd></div>
+  {% if e.saldo > 0 %}
+    <div class="datos__total"><dt>{{ 'Te falta pagar' if para_cliente else 'Saldo pendiente' }}</dt><dd class="cifra">{{ e.saldo|moneda }}</dd></div>
+  {% else %}
+    <div class="datos__total"><dt>Saldo</dt><dd class="cifra cifra--verde">Liquidado</dd></div>
+  {% endif %}
+</dl>
+{% if e.esta_finiquitado %}
+  <p class="nota">{{ 'Tu evento' if para_cliente else 'El evento' }} quedó liquidado{% if e.fecha_finiquito %} el {{ e.fecha_finiquito|fecha }}{% endif %}.</p>
+{% endif %}
+{% endif %}
