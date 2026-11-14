@@ -154,14 +154,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // IU-06 (Figura 32) · Cotización en vivo, lugares disponibles y alta rápida del cliente.
-  // Solo orienta la captura: el costo oficial lo calcula la base al guardar (RN-09)
-  // y el aforo lo hace cumplir el trigger de HU-007 (BF001).
+  // IU-06 (Figura 32) · Cotización en vivo, lugares disponibles, agenda del salón
+  // y alta rápida del cliente. Solo orienta la captura: el costo oficial lo calcula
+  // la base al guardar (RN-09) y el aforo y el traslape los hacen cumplir los
+  // triggers de HU-007 (BF001 y BF002).
   const formReserva = document.querySelector("[data-reservacion]");
   if (formReserva) {
     const $ = (selector) => formReserva.querySelector(selector);
     const salon = $("#id_salon"), paquete = $("#id_paquete"), invitados = $("#num_asistentes");
-    const inicio = $("#hora_inicio"), termino = $("#hora_fin");
+    const inicio = $("#hora_inicio"), termino = $("#hora_fin"), fecha = $("#fecha_evento");
+    const agenda = $("[data-agenda]"), avisoTraslape = $("[data-aviso-traslape]");
+    let traslape = "";            // mensaje del traslape vigente; "" si el horario está libre
+    let consultaAgenda = null;    // AbortController de la consulta en curso
+    let esperaAgenda = 0;
     const cliente = $("#id_cliente"), esNuevo = $("#cliente_nuevo");
     const bloqueNuevo = $("[data-cliente-nuevo]"), bloqueExistente = $("[data-cliente-existente]");
     const avisoAforo = $("[data-aviso-aforo]"), avisoHorario = $("[data-aviso-horario]");
@@ -173,6 +178,82 @@ document.addEventListener("DOMContentLoaded", () => {
     const pesos = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
     const enteros = new Intl.NumberFormat("es-MX");
     const elegida = (select) => (select.value ? select.selectedOptions[0] : null);
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    // El total cuenta hacia su nuevo valor (≈300 ms). aria-busy evita que el lector
+    // de pantalla anuncie cada paso: solo se lee la cifra final.
+    const contar = (elemento, valor) => {
+      const desde = Number(elemento.dataset.valor) || 0;
+      elemento.dataset.valor = valor;
+      cancelAnimationFrame(elemento._cuadro);
+      if (quieto.matches || !desde || desde === valor) { elemento.textContent = pesos.format(valor); return; }
+      const caja = elemento.closest("[aria-live]");
+      caja?.setAttribute("aria-busy", "true");
+      const inicioAnim = performance.now();
+      const paso = (ahora) => {
+        const avance = Math.min(1, (ahora - inicioAnim) / 300);
+        const suave = 1 - Math.pow(1 - avance, 3);
+        elemento.textContent = pesos.format(Math.round(desde + (valor - desde) * suave));
+        if (avance < 1) { elemento._cuadro = requestAnimationFrame(paso); return; }
+        elemento.textContent = pesos.format(valor);
+        caja?.setAttribute("aria-busy", "false");
+      };
+      elemento._cuadro = requestAnimationFrame(paso);
+    };
+
+    // Overdrive · línea del día: los eventos de la agenda como bloques sobre las horas
+    // y el horario capturado como bloque fantasma (rojo si se encima con uno que aparta).
+    const linea = $("[data-linea-dia]"), pista = $("[data-linea-pista]"), regla = $("[data-linea-horas]");
+    let eventosDelDia = [];
+    const minutos = (hhmm) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
+    const pintarLinea = () => {
+      const fantasma = inicio.value && termino.value && termino.value > inicio.value
+        ? { inicio: inicio.value, fin: termino.value } : null;
+      const horarios = [...eventosDelDia, ...(fantasma ? [fantasma] : [])];
+      if (!horarios.length) { linea.hidden = true; return; }
+      linea.hidden = false;
+      const desde = Math.min(8, ...horarios.map((e) => Math.floor(minutos(e.inicio) / 60)));
+      const hasta = 24, horas = hasta - desde;
+      const posicion = (e) => {
+        const a = Math.max(0, minutos(e.inicio) - desde * 60), b = minutos(e.fin) - desde * 60;
+        return { left: `${(a / (horas * 60)) * 100}%`, width: `${((b - a) / (horas * 60)) * 100}%` };
+      };
+      pista.style.setProperty("--horas", horas);
+      // Las cotizaciones van primero y en un carril delgado abajo: lo que aparta se dibuja encima.
+      const bloques = [...eventosDelDia].sort((a, b) => Number(a.aparta) - Number(b.aparta)).map((e) => {
+        const bloque = document.createElement("span");
+        bloque.className = `linea-dia__bloque${e.aparta ? "" : " linea-dia__bloque--cotiza"}`;
+        Object.assign(bloque.style, posicion(e));
+        return bloque;
+      });
+      let previo = pista.querySelector(".linea-dia__bloque--fantasma");
+      pista.replaceChildren(...bloques);
+      if (fantasma) {
+        const choca = eventosDelDia.some((e) => e.aparta && e.inicio < fantasma.fin && fantasma.inicio < e.fin);
+        const bloque = previo || document.createElement("span");
+        const estabaChocando = bloque.classList.contains("linea-dia__bloque--choca");
+        bloque.className = "linea-dia__bloque linea-dia__bloque--fantasma";
+        if (choca) {
+          if (!estabaChocando) void bloque.offsetWidth;   // reinicia el temblor solo al entrar en choque
+          bloque.classList.add("linea-dia__bloque--choca");
+        }
+        Object.assign(bloque.style, posicion(fantasma));
+        pista.append(bloque);
+      }
+      const salto = horas > 12 ? (pista.clientWidth < 320 ? 4 : 3) : 2, marcas = [];   // menos marcas en el celular
+      for (let h = desde; h <= hasta; h += salto) marcas.push(h);
+      // La última marca es siempre el fin del día; si queda pegada a la anterior, la reemplaza.
+      if (marcas[marcas.length - 1] !== hasta) {
+        if (hasta - marcas[marcas.length - 1] < salto) marcas.pop();
+        marcas.push(hasta);
+      }
+      regla.replaceChildren(...marcas.map((h) => {
+        const marca = document.createElement("span");
+        marca.textContent = `${String(h).padStart(2, "0")}:00`;
+        marca.style.left = `${((h - desde) / horas) * 100}%`;
+        return marca;
+      }));
+    };
 
     // Un paquete personalizado solo se ofrece a su dueño (RN-12).
     const filtrarPaquetes = () => {
@@ -203,7 +284,8 @@ document.addEventListener("DOMContentLoaded", () => {
       salida.renta.textContent = s ? pesos.format(renta) : "—";
       salida.etiquetaPaquete.textContent = `Paquete × ${enteros.format(n)} pers.`;
       salida.paquete.textContent = p ? pesos.format(precio * n) : "—";
-      salida.total.textContent = s && p && n ? pesos.format(renta + precio * n) : "—";
+      if (s && p && n) contar(salida.total, renta + precio * n);
+      else { salida.total.textContent = "—"; salida.total.dataset.valor = ""; }
 
       // RF-23 · lugares disponibles y aviso de aforo excedido
       let problema = "";
@@ -215,8 +297,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (libres < 0) {
           salida.lugares.classList.add("excedido");
           problema = "aforo";
-          avisoAforo.textContent = `El ${s.dataset.nombre} admite ${enteros.format(capacidad)} personas y capturaste ` +
+          // Solo se reescribe si cambió: un role="alert" se anuncia cada vez que cambia su texto.
+          const mensaje = `El ${s.dataset.nombre} admite ${enteros.format(capacidad)} personas y capturaste ` +
             `${enteros.format(n)}. Reduce los invitados o elige otro salón.`;
+          if (avisoAforo.textContent !== mensaje) avisoAforo.textContent = mensaje;
         } else if (libres <= capacidad * 0.1) {
           salida.lugares.classList.add("justo");
         }
@@ -233,16 +317,133 @@ document.addEventListener("DOMContentLoaded", () => {
         problema = problema || "horario";
       }
 
+      // RF-24 · el horario se encima con un evento ya programado (lo informó /api/agenda)
+      avisoTraslape.hidden = !traslape || Boolean(horarioMal);
+      if (traslape && !horarioMal) {
+        avisoTraslape.textContent = traslape;
+        problema = problema || "traslape";
+      }
+
+      pintarLinea();
+      // Todas las reglas que fallan, no solo la primera: corregir una no debe revelar otra por sorpresa.
+      const fallas = [
+        !avisoAforo.hidden && "el aforo excedido",
+        !avisoHorario.hidden && "la hora de término",
+        !avisoTraslape.hidden && "el horario encimado con otro evento",
+      ].filter(Boolean);
       guardar.disabled = Boolean(problema);
-      motivo.hidden = !problema;
-      motivo.textContent = problema === "aforo" ? "Deshabilitado mientras el aforo no se cumpla."
-                         : problema === "horario" ? "Deshabilitado hasta corregir el horario." : "";
+      motivo.hidden = !fallas.length;
+      motivo.textContent = fallas.length
+        ? `Deshabilitado hasta resolver ${fallas.length > 1 ? fallas.slice(0, -1).join(", ") + " y " + fallas.at(-1) : fallas[0]}.`
+        : "";
+    };
+
+    // RF-24 (HU-007) · Agenda del salón en la fecha capturada.
+    // El servidor decide qué eventos se enciman; aquí solo se pinta la respuesta.
+    // Huecos del día (08:00–24:00) que no aparta ningún evento: «08:00–14:00 y 19:00–24:00».
+    const horasLibres = (eventos) => {
+      const ocupados = eventos.filter((e) => e.aparta).sort((a, b) => (a.inicio < b.inicio ? -1 : 1));
+      const huecos = [];
+      let desde = "08:00";
+      for (const e of ocupados) {
+        if (e.inicio > desde) huecos.push(`${desde}–${e.inicio}`);
+        if (e.fin > desde) desde = e.fin;
+      }
+      if (desde < "24:00") huecos.push(`${desde}–24:00`);
+      return huecos.length > 1 ? `${huecos.slice(0, -1).join(", ")} y ${huecos.at(-1)}` : (huecos[0] || "");
+    };
+
+    const pintarAgenda = (datos) => {
+      const lista = agenda.querySelector("[data-agenda-lista]");
+      const estado = agenda.querySelector("[data-agenda-estado]");
+      agenda.querySelector("[data-agenda-titulo]").textContent =
+        `Agenda de ${datos.salon.nombre} · ${datos.fecha_legible}`;
+      lista.replaceChildren(...datos.eventos.map((e) => {
+        const fila = document.createElement("li");
+        const horas = document.createElement("span");
+        horas.className = "agenda-dia__horas";
+        horas.textContent = `${e.inicio} a ${e.fin}`;
+        const detalle = document.createElement("span");
+        detalle.textContent = `${e.clave} · ${e.titulo} (${e.estado})`;
+        fila.append(horas, detalle);
+        if (e.traslapa) {
+          fila.className = "agenda-dia__encimado";
+          const marca = document.createElement("strong");
+          marca.textContent = "Se encima";
+          fila.append(marca);
+        } else if (e.compite) {
+          // D-20: una cotización no aparta el horario; solo se avisa que hay otra en la fila
+          const marca = document.createElement("strong");
+          marca.textContent = "También cotizado";
+          fila.append(marca);
+        }
+        return fila;
+      }));
+      // Ámbar solo como advertencia previa: el día tiene eventos y aún no hay horario que comparar.
+      // Libre queda neutro y un choque lo dice el aviso rojo, una sola vez.
+      agenda.classList.toggle("agenda-dia--ocupada", datos.libre === null && datos.eventos.some((e) => e.aparta));
+      eventosDelDia = datos.eventos;
+      const encimados = datos.eventos.filter((e) => e.traslapa);
+      const libres = horasLibres(datos.eventos);
+      const compiten = datos.eventos.filter((e) => e.compite);
+      if (!datos.eventos.length) {
+        estado.textContent = "Sin eventos ese día: el salón está libre.";
+      } else if (datos.libre === null) {
+        estado.textContent = "Ese día ya hay eventos. Captura el horario para saber si está libre." +
+          (libres ? ` Libre: ${libres}.` : "");
+      } else if (datos.libre && compiten.length) {
+        estado.textContent = `El horario de ${inicio.value} a ${termino.value} está libre, pero ` +
+          (compiten.length === 1 ? "hay otra cotización" : `hay ${compiten.length} cotizaciones`) +
+          " para ese horario: el salón lo aparta el primer evento que se confirme con anticipo.";
+      } else if (datos.libre) {
+        estado.textContent = `Ese día ya hay eventos, pero el horario de ${inicio.value} a ${termino.value} está libre.`;
+      } else {
+        estado.textContent = "";      // el aviso rojo de arriba ya lo dice, con la sugerencia
+      }
+      traslape = encimados.length
+        ? `«${datos.salon.nombre}» ya está ocupado el ${datos.fecha_legible} de ${encimados[0].inicio} a ` +
+          `${encimados[0].fin} por el evento ${encimados[0].clave}. ` +
+          (libres ? `Libre ese día: ${libres}.` : "Elige otra fecha u otro salón.")
+        : "";
+      agenda.hidden = false;
+    };
+
+    const consultarAgenda = () => {
+      clearTimeout(esperaAgenda);
+      consultaAgenda?.abort();
+      if (!salon.value || !fecha.value) {
+        agenda.hidden = true; traslape = ""; eventosDelDia = []; recalcular();
+        return;
+      }
+      esperaAgenda = setTimeout(async () => {
+        consultaAgenda = new AbortController();
+        const parametros = new URLSearchParams({ salon: salon.value, fecha: fecha.value });
+        if (inicio.value && termino.value && termino.value > inicio.value) {
+          parametros.set("inicio", inicio.value);
+          parametros.set("fin", termino.value);
+        }
+        try {
+          const respuesta = await fetch(`${agenda.dataset.url}?${parametros}`, {
+            headers: { Accept: "application/json" }, signal: consultaAgenda.signal,
+          });
+          const esJson = (respuesta.headers.get("content-type") || "").includes("application/json");
+          if (!respuesta.ok || !esJson) throw new Error("agenda no disponible");
+          pintarAgenda(await respuesta.json());
+        } catch (error) {
+          if (error.name === "AbortError") return;
+          // Sin agenda la captura sigue: la base valida el horario al guardar (BF002).
+          agenda.hidden = true; traslape = ""; eventosDelDia = [];
+        }
+        recalcular();
+      }, 250);
     };
 
     esNuevo.addEventListener("change", () => { alternarCliente(); recalcular(); });
     cliente.addEventListener("change", () => { filtrarPaquetes(); recalcular(); });
     [salon, paquete].forEach((campo) => campo.addEventListener("change", recalcular));
     [invitados, inicio, termino].forEach((campo) => campo.addEventListener("input", recalcular));
+    salon.addEventListener("change", consultarAgenda);
+    [fecha, inicio, termino].forEach((campo) => campo.addEventListener("input", consultarAgenda));
 
     // Evita registrar dos veces el mismo evento por un doble clic.
     formReserva.addEventListener("submit", (evento) => {
@@ -251,9 +452,18 @@ document.addEventListener("DOMContentLoaded", () => {
       guardar.textContent = "Guardando…";
     });
     // Al volver con el botón «atrás» el navegador puede restaurar el botón deshabilitado.
-    window.addEventListener("pageshow", () => { guardar.textContent = "Guardar reservación"; recalcular(); });
+    window.addEventListener("pageshow", () => {
+      guardar.textContent = "Guardar cotización"; recalcular(); consultarAgenda();
+    });
 
     alternarCliente();
     recalcular();
+  }
+
+  document.querySelectorAll("[data-filtros] select").forEach((lista) =>
+    lista.addEventListener("change", () => lista.form.requestSubmit()));
+  const pliegue = document.querySelector("[data-pliegue-filtros]");
+  if (pliegue && !pliegue.hasAttribute("data-activos") && window.matchMedia("(max-width: 640px)").matches) {
+    pliegue.open = false;
   }
 });

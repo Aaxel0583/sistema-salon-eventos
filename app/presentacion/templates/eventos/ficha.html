@@ -6,14 +6,25 @@
 {% block titulo %}{{ evento.clave_proyecto }}{% endblock %}
 {% block contenido %}
 <div class="encabezado cabecera-evento">
-  <div>
-    <p class="cabecera-evento__miga"><a href="{{ url_for('eventos.listado') }}">Eventos</a></p>
-    <h1>{{ evento.clave_proyecto }} · {{ evento.titulo }}</h1>
+  <div class="encabezado--agenda">
+    {% with dia = evento.fecha_evento %}{% include "_hoja_agenda.html" %}{% endwith %}
+    <div>
+      <p class="cabecera-evento__miga"><a href="{{ url_for('eventos.listado') }}">Eventos</a></p>
+      <h1>{{ evento.clave_proyecto }} · {{ evento.titulo }}</h1>
+      <p class="cabecera-evento__fecha">{{ evento.fecha_evento|fecha_larga }} · {{ evento.horario }} · {{ evento.nombre_salon }}</p>
+    </div>
   </div>
   <div class="cabecera-evento__estado">
     {% with e = evento %}{% include "eventos/_estado.html" %}{% endwith %}
   </div>
 </div>
+
+{% if evento.horario_tomado %}
+  <div class="aviso aviso--aviso" role="status">
+    Este horario ya lo apartó {{ evento.apartado_por }} con anticipo, así que esta cotización no puede confirmarse.
+    Ofrece al cliente otra fecha, otro horario u otro salón.
+  </div>
+{% endif %}
 
 {% if evento.pendiente_de_cierre(hoy) %}
   <div class="aviso aviso--aviso" role="status">
@@ -36,11 +47,7 @@
 
   <section class="panel panel--suave" aria-labelledby="t-cuenta">
     <h2 id="t-cuenta">Estado de cuenta</h2>
-    <dl class="datos">
-      <div><dt>Costo total</dt><dd>{{ evento.costo_total|moneda }}</dd></div>
-      <div><dt>Pagado</dt><dd class="cifra--verde">{{ evento.total_pagado|moneda }}</dd></div>
-      <div class="datos__total"><dt>Saldo pendiente</dt><dd class="{{ 'cifra--ambar' if evento.saldo > 0 else 'cifra--verde' }}">{{ evento.saldo|moneda }}</dd></div>
-    </dl>
+    {% with e = evento, para_cliente = false %}{% include "eventos/_cuenta.html" %}{% endwith %}
     <p class="nota">El costo se fijó al cotizar: cambios posteriores en la renta del salón o en el precio del paquete no lo alteran.</p>
   </section>
 </div>
@@ -49,43 +56,39 @@
   <section class="panel" aria-labelledby="t-gestion">
     <h2 id="t-gestion">Gestión</h2>
 
-    <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=evento.id_evento) }}" class="formulario-linea"
-          {% if siguientes %}data-confirmar="El cambio de estatus queda en la bitácora."{% endif %}>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="campo">
-        <label for="estado">Estatus</label>
-        {% if siguientes %}
-          {# Cada estatus confirma con su propio título, consecuencia y verbo (DESIGN.md «Modal de confirmación»).
-             Solo Cancelado es destructivo y va en rojo; confirmar y marcar realizado van en azul. #}
-          {% set c = evento.clave_proyecto %}
-          {% set confirmaciones = {
-            'CONFIRMADO': ('¿Confirmar ' ~ c ~ '?',
-                           'El cliente aceptó la cotización. El evento pasa a confirmado y su saldo se suma a lo que está por cobrar.',
-                           'Confirmar evento', 'primario', 'Cancelar'),
-            'REALIZADO':  ('¿' ~ c ~ ' se realizó?',
-                           'El evento quedará como realizado y cerrará su ciclo: su estatus ya no podrá cambiar.',
-                           'Marcar como realizado', 'primario', 'Cancelar'),
-            'CANCELADO':  ('¿Cancelar ' ~ c ~ '?',
-                           'El evento quedará como cancelado, dejará de contar en la ocupación del salón y cerrará su ciclo: su estatus ya no podrá cambiar.',
-                           'Cancelar evento', 'peligro', 'Mantener evento'),
-          } %}
-          <select id="estado" name="estado" required data-confirmar-segun>
-            <option value="">Elige el nuevo estatus</option>
-            {% for codigo in siguientes %}
-              {% set titulo, consecuencia, verbo, tono, volver = confirmaciones[codigo] %}
-              <option value="{{ codigo }}" data-titulo="{{ titulo }}" data-confirmar="{{ consecuencia }}"
-                      data-verbo="{{ verbo }}" data-tono="{{ tono }}" data-volver="{{ volver }}">{{ estados[codigo] }}</option>
-            {% endfor %}
-          </select>
-        {% else %}
-          <p class="texto-suave">{{ evento.estado_legible }}: el evento cerró su ciclo y su estatus ya no cambia.</p>
-        {% endif %}
+    {% if siguientes %}
+      {# Cada estatus permitido es un botón con su propia confirmación (DESIGN.md «Modal de confirmación»).
+         Solo Cancelado es destructivo y va en rojo; confirmar y marcar realizado van en azul. #}
+      {% set c = evento.clave_proyecto %}
+      {% set confirmaciones = {
+        'CONFIRMADO': ('¿Confirmar ' ~ c ~ '?',
+                       'El cliente dio el anticipo. El evento pasa a confirmado, aparta el salón en ese horario y su saldo se suma a lo que está por cobrar.',
+                       'Confirmar evento', 'primario', 'Cancelar'),
+        'REALIZADO':  ('¿' ~ c ~ ' se realizó?',
+                       'El evento quedará como realizado y cerrará su ciclo: su estatus ya no podrá cambiar.',
+                       'Marcar como realizado', 'primario', 'Cancelar'),
+        'CANCELADO':  ('¿Cancelar ' ~ c ~ '?',
+                       'El evento quedará como cancelado, dejará de contar en la ocupación del salón y cerrará su ciclo: su estatus ya no podrá cambiar.',
+                       'Cancelar evento', 'peligro', 'Mantener evento'),
+      } %}
+      <p class="gestion__etiqueta">Estatus</p>
+      <div class="acciones-estatus">
+        {% for codigo in siguientes if not (codigo == 'CONFIRMADO' and evento.horario_tomado) %}
+          {% set titulo, consecuencia, verbo, tono, volver = confirmaciones[codigo] %}
+          <form method="post" action="{{ url_for('eventos.cambiar_estado', id_evento=evento.id_evento) }}"
+                data-titulo="{{ titulo }}" data-confirmar="{{ consecuencia }}"
+                data-verbo="{{ verbo }}" data-tono="{{ tono }}" data-volver="{{ volver }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="estado" value="{{ codigo }}">
+            <button type="submit" class="boton {{ 'boton--peligro' if tono == 'peligro' }}">{{ verbo }}</button>
+          </form>
+        {% endfor %}
       </div>
-      {% if siguientes %}
-        <div class="acciones-formulario"><button type="submit" class="boton">Cambiar estatus</button></div>
-      {% endif %}
-    </form>
+    {% else %}
+      <p class="texto-suave">{{ evento.estado_legible }}: el evento cerró su ciclo y su estatus ya no cambia.</p>
+    {% endif %}
 
+    {% if evento.esta_abierto %}
     <form method="post" action="{{ url_for('eventos.asignar_gerente', id_evento=evento.id_evento) }}" class="formulario-linea">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="campo">
@@ -99,6 +102,7 @@
       </div>
       <div class="acciones-formulario"><button type="submit" class="boton">Asignar</button></div>
     </form>
+    {% endif %}
   </section>
 
   <section class="panel" aria-labelledby="t-menu">

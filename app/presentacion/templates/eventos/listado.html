@@ -7,7 +7,10 @@
   <a class="boton boton--primario" href="{{ url_for('eventos.nuevo') }}">Nueva reservación</a>
 </div>
 
-<form method="get" action="{{ url_for('eventos.listado') }}" class="filtros" role="search">
+{# En el celular los filtros se pliegan para que la lista empiece arriba (app.js los cierra si no hay ninguno activo) #}
+<details class="pliegue-filtros" open data-pliegue-filtros {% if hay_filtros %}data-activos{% endif %}>
+  <summary class="boton">Filtrar{% if hay_filtros %} (activos){% endif %}</summary>
+<form method="get" action="{{ url_for('eventos.listado') }}" class="filtros" role="search" data-filtros>
   <div class="campo campo--ancho">
     <label for="q">Buscar</label>
     <input type="search" id="q" name="q" value="{{ filtros.texto }}" placeholder="Clave, evento o cliente…" enterkeyhint="search">
@@ -35,10 +38,15 @@
     {% if hay_filtros %}<a class="boton boton--texto" href="{{ url_for('eventos.listado') }}">Quitar filtros</a>{% endif %}
   </div>
 </form>
+</details>
 
 {% if eventos %}
-  <div class="tabla-desplazable">
-    <table class="tabla">
+  {% for titulo, lista in grupos %}
+  <section class="grupo-eventos" aria-labelledby="t-grupo-{{ loop.index }}">
+    <h2 id="t-grupo-{{ loop.index }}">{{ titulo }} <span class="texto-suave">({{ lista|length }})</span></h2>
+    {# En el celular cada evento es una tarjeta (DESIGN.md «Layout»); en escritorio, tabla desplazable con teclado #}
+    <div class="tabla-desplazable" tabindex="0" role="region" aria-labelledby="t-grupo-{{ loop.index }}">
+    <table class="tabla tabla--tarjetas">
       <thead>
         <tr>
           <th scope="col">Clave</th>
@@ -52,28 +60,34 @@
         </tr>
       </thead>
       <tbody>
-      {% for e in eventos %}
+      {% for e in lista %}
         <tr>
-          <td class="sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=e.id_evento) }}">{{ e.clave_proyecto }}</a></td>
-          <td>{{ e.titulo }}{% if e.nombre_evento %}<br><span class="texto-suave">{{ e.nombre_cliente }}</span>{% endif %}</td>
-          <td class="sin-corte">{{ e.nombre_salon }}</td>
-          <td class="cifra"><span class="{{ 'cifra--roja' if e.pendiente_de_cierre(hoy) }}">{{ e.fecha_evento|fecha }}</span><br>
+          <th scope="row" class="tabla__titulo sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=e.id_evento) }}">{{ e.clave_proyecto }}</a></th>
+          <td class="tabla__evento">{{ e.titulo }}{% if e.nombre_evento %}<br><span class="texto-suave">{{ e.nombre_cliente }}</span>{% endif %}
+            {% if e.horario_tomado %}<br><span class="aviso-linea">Horario ya apartado por {{ e.apartado_por }}</span>{% endif %}</td>
+          <td data-etiqueta="Salón" class="sin-corte">{{ e.nombre_salon }}</td>
+          <td data-etiqueta="Fecha" class="cifra"><span class="{{ 'cifra--ambar' if e.pendiente_de_cierre(hoy) }}">{{ e.fecha_evento|fecha_dia }}</span><br>
               <span class="texto-suave">{{ e.horario }}</span></td>
-          <td class="cifra numero">{{ e.num_asistentes }}</td>
-          <td class="cifra numero">{{ e.costo_total|moneda }}</td>
-          <td>{% include "eventos/_estado.html" %}</td>
-          <td>{{ e.nombre_gerente or '—' }}</td>
+          <td data-etiqueta="Invitados" class="cifra numero">{{ e.num_asistentes }}</td>
+          <td data-etiqueta="Total" class="cifra numero">{{ e.costo_total|moneda }}</td>
+          <td class="tabla__estado">{% include "eventos/_estado.html" %}</td>
+          <td data-etiqueta="Responsable" {% if not e.nombre_gerente %}class="tabla__vacio"{% endif %}>{{ e.nombre_gerente or '—' }}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
-  </div>
+    </div>
+  </section>
+  {% endfor %}
   {% if eventos|length >= limite %}
     <p class="aviso aviso--aviso">Se muestran los primeros {{ limite }} eventos. Usa los filtros para encontrar los demás.</p>
   {% endif %}
 {% elif hay_filtros %}
   <p class="texto-suave">Ningún evento coincide con los filtros. <a href="{{ url_for('eventos.listado') }}">Ver todos</a>.</p>
 {% else %}
-  <p class="texto-suave">Aún no hay eventos. Usa «Nueva reservación» para cotizar el primero.</p>
+  <section class="panel vacio">
+    <p>Aún no hay eventos. La primera cotización empieza eligiendo salón y fecha.</p>
+    <a class="boton boton--primario" href="{{ url_for('eventos.nuevo') }}">Nueva reservación</a>
+  </section>
 {% endif %}
 {% endblock %}

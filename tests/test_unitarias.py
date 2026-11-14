@@ -87,3 +87,16 @@ class TestDominio:
         platillos = [Platillo(1, "Flan", "POSTRE"), Platillo(2, "Sopa", "ENTRADA"),
                      Platillo(3, "Agua", "BEBIDA")]
         assert list(agrupar_por_categoria(platillos)) == ["ENTRADA", "POSTRE", "BEBIDA"]
+
+
+def test_fecha_larga_en_espanol():
+    """La fecha del evento se lee con día de la semana y mes en letra (DESIGN.md «Hoja de agenda»)."""
+    from datetime import date
+    from flask import Flask
+    from app import _registrar_filtros
+    app = Flask(__name__)
+    _registrar_filtros(app)
+    filtros = app.jinja_env.filters
+    assert filtros["fecha_larga"](date(2030, 2, 23)) == "Sábado 23 de febrero de 2030"
+    assert filtros["mes_corto"](date(2026, 11, 12)) == "Nov"
+    assert filtros["dia_semana"](date(2026, 11, 12)) == "Jueves"

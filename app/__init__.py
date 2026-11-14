@@ -54,13 +54,14 @@ def create_app(config: Configuracion | None = None) -> Flask:
 
 def _registrar_blueprints(app: Flask) -> None:
     from app.rutas.acceso import bp as acceso
+    from app.rutas.agenda import bp as agenda
     from app.rutas.catalogos import bp as catalogos
     from app.rutas.clientes import bp as clientes
     from app.rutas.eventos import bp as eventos
     from app.rutas.panel import bp as panel
     from app.rutas.portal import bp as portal
 
-    for blueprint in (acceso, panel, eventos, clientes, catalogos, portal):
+    for blueprint in (acceso, panel, eventos, agenda, clientes, catalogos, portal):
         app.register_blueprint(blueprint)
 
 
@@ -82,6 +83,31 @@ def _registrar_filtros(app: Flask) -> None:
     @app.template_filter("fecha")
     def fecha(valor) -> str:
         return valor.strftime("%d/%m/%Y") if valor else "—"
+
+    # La fecha es lo que más le importa al cliente: con día de la semana y mes en letra.
+    @app.template_filter("fecha_larga")
+    def fecha_larga(valor) -> str:
+        if not valor:
+            return "—"
+        return f"{_DIAS[valor.weekday()]} {valor.day} de {_MESES[valor.month - 1]} de {valor.year}"
+
+    @app.template_filter("fecha_dia")
+    def fecha_dia(valor) -> str:
+        """'Sáb 19/12/2027': en el salón el día de la semana cambia todo (sábado frente a martes)."""
+        return f"{_DIAS[valor.weekday()][:3]} {valor:%d/%m/%Y}" if valor else "—"
+
+    @app.template_filter("mes_corto")
+    def mes_corto(valor) -> str:
+        return _MESES[valor.month - 1][:3].capitalize()
+
+    @app.template_filter("dia_semana")
+    def dia_semana(valor) -> str:
+        return _DIAS[valor.weekday()]
+
+
+_DIAS = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+_MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+          "septiembre", "octubre", "noviembre", "diciembre")
 
 
 def _registrar_ganchos(app: Flask, config: Configuracion) -> None:
@@ -111,7 +137,8 @@ def _registrar_ganchos(app: Flask, config: Configuracion) -> None:
 
     @app.context_processor
     def datos_globales():
-        return {"nombre_negocio": config.nombre_negocio, "usuario": g.get("usuario")}
+        return {"nombre_negocio": config.nombre_negocio, "telefono_negocio": config.telefono_negocio,
+                "usuario": g.get("usuario")}
 
     @app.after_request
     def cabeceras_seguridad(respuesta):

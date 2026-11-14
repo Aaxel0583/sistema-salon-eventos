@@ -1,0 +1,9 @@
+{# Un solo contacto real (TELEFONO_NEGOCIO en .env); sin teléfono configurado queda el texto. #}
+<p class="contacto-salon">
+  ¿Algo no coincide con lo que acordaste?
+  {% if telefono_negocio %}
+    Llama o escribe a {{ nombre_negocio }}: <a href="tel:{{ telefono_negocio|replace(' ', '') }}">{{ telefono_negocio|contacto }}</a>.
+  {% else %}
+    Comunícate con {{ nombre_negocio }}.
+  {% endif %}
+</p>

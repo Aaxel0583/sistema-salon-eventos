@@ -2,18 +2,18 @@
 Sprint 2 · Parte 1 · Motor de reservas y tablero (HU-005, HU-006).
 Casos del SRS Anexo C: CP-07, CP-08, CP-09, CP-24 y la parte de CP-19 que
 no depende del aforo (atomicidad del alta conjunta, DA-05).
-CP-10, CP-11, CP-12 y CP-19 completo se prueban con HU-007 (Parte 2).
+CP-10, CP-11, CP-12 y CP-19 completo están en test_disponibilidad.py (HU-007, Parte 2).
 """
 import re
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 
 import psycopg
 import pytest
 
 from app.datos.conexion import BaseDatos
 from app.datos.repositorio_eventos import RepositorioEventos
-from tests.conftest import correo_unico, telefono_unico
+from tests.conftest import correo_unico, fecha_libre, telefono_unico
 
 pytestmark = pytest.mark.integracion
 
@@ -32,7 +32,7 @@ def gerente(cliente_http, crear_usuario):
 
 def _fecha_futura() -> str:
     """Una fecha distinta por prueba, para no chocar con los traslapes de HU-007."""
-    return (date.today() + timedelta(days=400 + uuid.uuid4().int % 3000)).isoformat()
+    return fecha_libre().isoformat()
 
 
 def _consulta(sql, parametros=()):
@@ -109,11 +109,12 @@ def test_cp08_clave_formato_consecutivo_e_inmutable(conexion):
         (correo_unico("cp08"),)).fetchone()["id_usuario"]
     insertar = """INSERT INTO evento (clave_proyecto, id_cliente, id_salon, id_paquete, fecha_evento,
                                       hora_inicio, hora_fin, num_asistentes, costo_total)
-                  VALUES (%s, %s, 1, 1, CURRENT_DATE + 900, '10:00', '12:00', 10, 0)
+                  VALUES (%s, %s, 1, 1, CURRENT_DATE + 900, %s, %s, 10, 0)
                   RETURNING clave_proyecto, costo_total"""
     # La clave y el costo que mande el INSERT se ignoran: los asigna la base (DA-01).
-    primera = conexion.execute(insertar, ("EVT-1999-0001", cliente)).fetchone()
-    segunda = conexion.execute(insertar, ("X", cliente)).fetchone()
+    # Horarios contiguos: el segundo evento no se traslapa con el primero (RF-27).
+    primera = conexion.execute(insertar, ("EVT-1999-0001", cliente, "10:00", "12:00")).fetchone()
+    segunda = conexion.execute(insertar, ("X", cliente, "12:00", "14:00")).fetchone()
     assert re.fullmatch(rf"EVT-{anio}-\d{{4}}", primera["clave_proyecto"])
     assert int(segunda["clave_proyecto"][-4:]) == int(primera["clave_proyecto"][-4:]) + 1
     assert primera["costo_total"] > 0
@@ -298,12 +299,14 @@ def test_ib10_ocupacion_cuenta_solo_eventos_proximos_vigentes(crear_usuario):
             return {o.id_salon: o for o in RepositorioEventos(cur).ocupacion_por_salon()}
 
     antes = ocupacion()[1]
-    _insertar_directo(id_cliente, dias=1200, id_salon=1, asistentes=125)
+    _insertar_directo(id_cliente, dias=1200, id_salon=1, asistentes=125, estado="CONFIRMADO")
+    _insertar_directo(id_cliente, dias=1202, id_salon=1, asistentes=240)      # cotización: aparte (D-20)
     _insertar_directo(id_cliente, dias=1201, id_salon=1, estado="CANCELADO")   # no cuenta
-    _insertar_directo(id_cliente, dias=-30, id_salon=1)                       # pasado: no cuenta
+    _insertar_directo(id_cliente, dias=-30, id_salon=1, estado="CONFIRMADO")  # pasado: no cuenta
     despues = ocupacion()[1]
     assert despues.eventos_proximos == antes.eventos_proximos + 1
-    assert despues.mayor_aforo >= 125
+    assert despues.cotizaciones_proximas == antes.cotizaciones_proximas + 1
+    assert despues.mayor_aforo >= 125 and despues.mayor_aforo < 240               # la cotización no pesa
 
 
 def test_indicadores_del_tablero(crear_usuario):
@@ -333,7 +336,7 @@ def test_confirmacion_propia_por_estatus(cliente_http, gerente, crear_usuario):
     id_cliente, _, _ = crear_usuario("CLIENTE")
     evento = _evento(_id_de(_reservar(cliente_http, id_cliente)))
     texto = cliente_http.get(f"/eventos/{evento.id_evento}").get_data(as_text=True)
-    lista = texto.split('data-confirmar-segun>')[1].split("</select>")[0]
+    lista = texto.split('id="t-gestion"')[1].split("</section>")[0]   # un botón por estatus permitido
     assert 'data-verbo="Confirmar evento" data-tono="primario"' in lista
     assert 'data-verbo="Cancelar evento" data-tono="peligro" data-volver="Mantener evento"' in lista
     assert f"¿Confirmar {evento.clave_proyecto}?" in lista
@@ -345,3 +348,49 @@ def test_confirmacion_propia_por_estatus(cliente_http, gerente, crear_usuario):
     assert 'data-verbo="Marcar como realizado" data-tono="primario"' in fila
     cancelar = fila.split('data-verbo="Marcar como cancelado"')[1].split(">")[0]
     assert "data-tono" not in cancelar                                       # rojo por omisión
+
+
+def test_ficha_con_fecha_larga_y_dinero_por_estatus(cliente_http, gerente, crear_usuario):
+    """DESIGN.md «Hoja de agenda» y «Dinero por estatus»: la ficha empieza por la fecha y una
+    cotización muestra lo cotizado, no un saldo por cobrar."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    evento = _evento(_id_de(_reservar(cliente_http, id_cliente)))
+    texto = cliente_http.get(f"/eventos/{evento.id_evento}").get_data(as_text=True)
+    assert 'class="hoja-agenda"' in texto and f'datetime="{evento.fecha_evento.isoformat()}"' in texto
+    assert " de 20" in texto.split('class="cabecera-evento__fecha">')[1].split("<")[0]   # «Sábado 23 de febrero de 2030»
+    cuenta = texto.split('id="t-cuenta"')[1].split("</section>")[0]
+    assert "Total cotizado" in cuenta and "Saldo pendiente" not in cuenta
+
+
+def test_listado_agrupa_lo_vencido_primero(cliente_http, gerente, crear_usuario):
+    """RN-14: lo vencido sin cerrar va en «Por cerrar», antes de los próximos."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    _insertar_directo(id_cliente, dias=-17, id_salon=1, estado="CONFIRMADO")
+    texto = cliente_http.get("/eventos").get_data(as_text=True)
+    assert texto.index("Por cerrar") < texto.index("Próximos")
+
+
+def test_panel_esta_semana_y_listado_con_dia(cliente_http, gerente, crear_usuario):
+    """«Esta semana» lista lo abierto de los próximos 7 días; la lista muestra el día de la semana."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    evento = _evento(_insertar_directo(id_cliente, dias=3, id_salon=1, estado="CONFIRMADO"))
+    panel = cliente_http.get("/panel").get_data(as_text=True)
+    semana = panel.split('id="t-semana"')[1].split("</section>")[0]
+    assert f'href="/eventos/{evento.id_evento}"' in semana
+    lista = cliente_http.get("/eventos").get_data(as_text=True)
+    dias = ("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
+    assert f"{dias[evento.fecha_evento.weekday()]} {evento.fecha_evento:%d/%m/%Y}" in lista
+
+
+def test_cotizacion_con_horario_ya_apartado(cliente_http, gerente, crear_usuario):
+    """D-20: si otro evento confirmó el mismo horario, la cotización lo dice y ya no ofrece «Confirmar»."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    perdida = _evento(_insertar_directo(id_cliente, dias=211, id_salon=1))
+    ganadora = _evento(_insertar_directo(id_cliente, dias=211, id_salon=1, estado="CONFIRMADO"))
+    assert _evento(perdida.id_evento).horario_tomado and not ganadora.horario_tomado
+
+    ficha = cliente_http.get(f"/eventos/{perdida.id_evento}").get_data(as_text=True)
+    assert f"Este horario ya lo apartó {ganadora.clave_proyecto}" in ficha
+    assert 'data-verbo="Confirmar evento"' not in ficha and 'data-verbo="Cancelar evento"' in ficha
+    lista = cliente_http.get("/eventos").get_data(as_text=True)
+    assert f"Horario ya apartado por {ganadora.clave_proyecto}" in lista

@@ -14,7 +14,7 @@ colors:
   tinta: "#1d2533"
   tinta-suave: "#555e6e"
   tinta-etiqueta: "#444c5a"
-  control-borde: "#8090aa"
+  control-borde: "#7d8da6"
   control-borde-hover: "#5f6f8a"
   verde: "#3d7a28"
   verde-fondo: "#e5efdf"
@@ -34,6 +34,11 @@ colors:
   foco: "#7fa7d6"
   lema-suave: "#cfdaee"
   linea-datos: "#cfd9e8"
+  linea: "#e3e9f2"
+  linea-suave: "#dbe3ef"
+  verde-texto: "#24481a"
+  rojo-texto: "#6b0000"
+  nav-texto: "#d6e0f0"
   velo-modal: "rgba(16, 28, 52, .45)"
 typography:
   display:
@@ -181,7 +186,7 @@ Una paleta fría y contenida: marino para la estructura, un azul para actuar y t
 - **Azul Claro** (#d9e2f3): encabezado de tablas.
 - **Azul Selección** (#edf3fb): hover de botones secundarios y pestañas; fondo del segmento elegido.
 - **Tinta** (#1d2533), **Tinta Suave** (#555e6e) y **Tinta Etiqueta** (#444c5a): texto principal, texto secundario y etiquetas de formulario.
-- **Borde de Control** (#8090aa, 3.2:1 sobre blanco), que pasa a #5f6f8a al pasar el cursor: contorno de campos y segmentos.
+- **Borde de Control** (#7d8da6, 3.4:1 sobre blanco y 3.2:1 sobre los paneles), que pasa a #5f6f8a al pasar el cursor: contorno de campos y segmentos.
 - **Foco**: contorno de 3px en Azul Invitación sobre fondos claros (4.8:1); dentro de la barra marino se usa #7fa7d6 (4.65:1).
 - **Línea de Datos** (#cfd9e8) y **Borde Deshabilitado** (#d1d5db): separador punteado de las fichas de salón y borde de botones no disponibles.
 - **Lema Suave** (#cfdaee): texto secundario sobre el marino de la pantalla de acceso.
@@ -222,7 +227,7 @@ Una paleta fría y contenida: marino para la estructura, un azul para actuar y t
 
 Contenido centrado con un ancho máximo de 1120px y márgenes laterales de 1rem. La página se arma con paneles apilados y rejillas que se acomodan solas: salones en `repeat(auto-fit, minmax(280px, 1fr))`, y dos columnas a partir de 860px. La pantalla de acceso se parte en 44% marca y 56% formulario desde 820px.
 
-El ritmo usa pasos de 0.25, 0.5, 0.75, 1, 1.25 y 1.5rem; entre paneles va 1rem y dentro de un panel 1.25rem. En cada pantalla de catálogo las pestañas van arriba y el título de la pantalla debajo. Por debajo de 640px las pestañas se reparten el ancho y la tabla de clientes se vuelve una tarjeta por fila (nombre y estado arriba, la acción siempre visible). Ninguna página se desplaza a los lados (RNF-13, 360px).
+El ritmo usa pasos de 0.25, 0.5, 0.75, 1, 1.25 y 1.5rem; entre paneles va 1rem y dentro de un panel 1.25rem. En cada pantalla de catálogo las pestañas van arriba y el título de la pantalla debajo. Por debajo de 640px las pestañas se reparten el ancho y los filtros de la lista de eventos se pliegan tras un botón «Filtrar» (abiertos si hay alguno activo), las tablas de clientes, eventos y pendientes se vuelven una tarjeta por fila (clave o nombre y estatus arriba, la acción siempre visible); la fecha, las horas y los invitados de la reservación van de dos en dos. Por debajo de 900px la cotización de la reservación es una barra fija abajo: el total en su propia fila y debajo los lugares y «Guardar cotización». En el portal, por debajo de 860px, el estado de cuenta va antes que «Tu evento». La lista de eventos se agrupa en «Por cerrar», «Próximos», «Anteriores» y «Cancelados», y sus fechas llevan el día de la semana («Sáb 19/12/2027»). Ninguna página se desplaza a los lados (RNF-13, 360px).
 
 ## Elevation & Depth
 
@@ -277,16 +282,34 @@ Sobrios y precisos: planos, con una respuesta corta y clara.
 - **Pestañas de catálogo:** botones de 44px con borde Azul Borde; la activa queda en blanco con texto marino y una barra azul de 3px abajo, para no competir con el botón principal de la pantalla.
 
 ### Hoja de agenda
-El motivo visual de "La Agenda del Salón": una hoja de calendario junto al título del panel, con el mes en una franja marino, el día en grande y el día de la semana. La fecha sale de la base, en la zona horaria del salón. Se reserva para fechas reales; no se decora con ella.
+El motivo visual de "La Agenda del Salón": una hoja de calendario junto al título del panel (fecha de hoy), de la ficha del evento y del detalle del portal (fecha del evento), con el mes en una franja marino, el día en grande y el día de la semana. La fecha sale de la base, en la zona horaria del salón. Se reserva para fechas reales; no se decora con ella.
+
+### Fecha del evento
+En la ficha y en el portal, bajo el título va la fecha larga («Domingo 19 de diciembre de 2027 · 14:00 a 19:00 · Salón Terraza»). En el portal, si el evento no está cancelado y no ha pasado, solo para eventos confirmados (una cotización todavía no es una fecha apartada), una píldora Azul Claro con texto marino cuenta los días («Faltan 402 días», «Es mañana», «Es hoy»).
+
+### Dinero por estatus
+Un solo bloque de cuenta para la ficha y el portal. Una cotización muestra «Total cotizado» y ninguna deuda; un cancelado muestra lo cotizado y lo pagado y aclara que no hay saldo; solo un confirmado o realizado tiene saldo, en marino («Saldo pendiente» para el gerente, «Te falta pagar» para el cliente). Saldo en cero se dice «Liquidado» en verde; «Pagado» va en verde solo si es mayor que cero. El ámbar no se usa para saldos: queda para lo vencido (Sprint 3).
+
+### Reservación
+Primero salón, paquete, fecha, horas e invitados; el cliente al final, porque la primera pregunta es si el salón está libre. El botón dice «Guardar cotización» y debajo «La fecha se aparta cuando el cliente da el anticipo» (D-27), también en la barra del celular. El motivo del botón deshabilitado nombra todas las reglas que fallan, no solo la primera. Mientras una regla falla, el total se tacha y el botón se deshabilita con el motivo. Un choque de horario se dice una sola vez, en el aviso rojo, con los huecos libres del día («Libre ese día: 08:00–14:00 y 19:00–24:00»); la agenda queda neutra y solo es ámbar mientras el día tiene eventos y todavía no hay horario que comparar. El total cuenta hacia su nuevo valor en 300ms (instantáneo con movimiento reducido) y solo se anuncia la cifra final.
+
+### Línea del día
+Dentro de la agenda del salón, una pista de horas (de las 8:00, o antes si hay eventos más temprano, a las 24:00) con los eventos del día como bloques: marino a todo lo alto si apartan el salón; las cotizaciones en un carril delgado y punteado abajo, que nunca tapa a un evento confirmado. El horario capturado aparece como bloque fantasma azul que se mueve al escribir las horas y se pone a franjas rojas y blancas opacas, con un temblor breve, si se encima con uno que aparta (así se distingue aunque caiga sobre un bloque marino). Es solo visual (aria-hidden): la lista de texto de la agenda dice lo mismo.
+
+### Cotización con horario perdido
+Si otro evento ya apartó con anticipo el mismo salón y horario, la cotización lo dice en todas partes: en la lista («Horario ya apartado por EVT-…», en Ámbar Hondo), en la ficha (aviso ámbar y sin el botón «Confirmar evento») y en el portal (aviso sin revelar la clave ajena, sin cuenta regresiva). El dato lo calcula el servidor (`apartado_por`).
+
+### Gestión del evento
+Cada estatus permitido es un botón con su propia confirmación; solo «Cancelar evento» va en rojo. El gerente responsable solo se reasigna mientras el evento está abierto.
 
 ### Panel
-Empieza por **Pendientes** (clientes bloqueados, salones no disponibles), cada uno con su acción. Los conteos van en una sola línea bajo el título, como enlaces discretos. La actividad no muestra inicios de sesión.
+Después de **Pendientes** va **Esta semana** (en el celular, antes; los conteos se deslizan en una sola fila): los eventos abiertos de los próximos 7 días, cada uno con su hoja de agenda chica, horario, salón, invitados y estatus. Empieza por **Pendientes** (clientes bloqueados, salones no disponibles), cada uno con su acción. Los conteos van en una sola línea bajo el título, como enlaces discretos. La actividad no muestra inicios de sesión.
 
 ### Armador de paquetes
 Resumen vivo arriba de los platillos («2 platillos · $280.00 por persona»), fijo al desplazarse en escritorio. Con más de 8 clientes aparece un buscador que filtra la lista.
 
 ### Tablas
-Encabezado Azul Claro con texto Marino de Gala; filas Panel Suave separadas por líneas #e3e9f2 que se aclaran a blanco al pasar el cursor.
+Encabezado Azul Claro con texto Marino de Gala; filas Panel Suave separadas por la Línea (#e3e9f2) que se aclaran a blanco al pasar el cursor.
 
 ### Avisos
 Banda de 6px a la izquierda del color de su estado sobre su fondo claro. Entran con un desplazamiento de 6px en 220ms.
@@ -313,6 +336,9 @@ Diálogo nativo de hasta 420px, con 10px de esquinas y sombra de modal. Entra y 
 - **Don't** cargar fuentes, estilos o scripts externos ni en línea: la CSP solo permite recursos propios.
 - **Don't** usar `window.confirm` ni `alert`; las confirmaciones van en el modal de la página, con título y verbo propios.
 - **Don't** marcar un estado bajando la opacidad del texto; se usa una etiqueta («No disponible»).
+- **Don't** llamar «saldo» a lo que no se debe: una cotización es «Total cotizado» y un cancelado no tiene saldo por cobrar.
+- **Don't** usar el ámbar para dinero que todavía no vence.
+- **Don't** pintar de color lo que es normal: «Activo» va en tinta, «Clave nueva» es un botón neutro (el rojo queda en su confirmación), los medidores van en marino (rojo solo si la ocupación es alta) y las fechas vencidas en ámbar, no en rojo.
 - **Don't** subir la sombra de una superficie que no se puede tocar ni flota.
 - **Don't** inventar logotipos, fotos del salón ni testimonios.
 - **Don't** usar caracteres (○, ✓, +, ▾) como íconos; los marcadores se dibujan con CSS.
