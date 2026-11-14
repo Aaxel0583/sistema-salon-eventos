@@ -1,0 +1,6 @@
+{# Etiqueta de estatus del evento (RN-11). Uso: {% include "eventos/_estado.html" %} con `e` en contexto.
+   DESIGN.md «El Color Dice Algo»: el ámbar es advertencia, por eso Cotización va en marino
+   (como «Personalizado»); verde = confirmado, gris = cerrado, rojo = cancelado. #}
+{%- set clases = {'COTIZACION': 'marino', 'CONFIRMADO': 'verde', 'REALIZADO': 'gris', 'CANCELADO': 'roja'} -%}
+<span class="etiqueta etiqueta--{{ clases.get(e.estado, 'gris') }}">{{ e.estado_legible }}</span>
+{%- if e.esta_finiquitado %} <span class="etiqueta etiqueta--verde">Finiquitado</span>{% endif %}

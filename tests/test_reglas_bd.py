@@ -12,6 +12,13 @@ def _sqlstate(error) -> str:
     return error.value.sqlstate
 
 
+def _aislar_salon(conexion, id_salon: int) -> None:
+    """Desde el Sprint 2 otras pruebas dejan eventos guardados. Dentro de esta
+    transacción (que se revierte al final) se cancelan, para que BF004 solo
+    vea el evento que crea la prueba."""
+    conexion.execute("UPDATE evento SET estado = 'CANCELADO' WHERE id_salon = %s", (id_salon,))
+
+
 def test_cp04_rechaza_cuarto_salon(conexion):
     with pytest.raises(psycopg.Error) as error:
         conexion.execute("INSERT INTO salon (nombre, capacidad_maxima, costo_renta) VALUES ('Cuarto', 50, 1000)")
@@ -23,6 +30,7 @@ def test_cp05_rechaza_reducir_capacidad_bajo_aforo_agendado(conexion):
         "INSERT INTO usuario (nombre, correo, rol, clave_hash) VALUES ('C', 'cp05@prueba.mx', 'CLIENTE', 'x') RETURNING id_usuario"
     ).fetchone()["id_usuario"]
     salon = conexion.execute("SELECT id_salon, capacidad_maxima FROM salon ORDER BY id_salon LIMIT 1").fetchone()
+    _aislar_salon(conexion, salon["id_salon"])
     conexion.execute(
         """INSERT INTO evento (clave_proyecto, id_cliente, id_salon, fecha_evento, hora_inicio,
                                hora_fin, num_asistentes, costo_total)
@@ -43,6 +51,7 @@ def test_cp05_evento_cancelado_no_bloquea_reduccion(conexion):
         "INSERT INTO usuario (nombre, telefono, rol, clave_hash) VALUES ('C', '4920000005', 'CLIENTE', 'x') RETURNING id_usuario"
     ).fetchone()["id_usuario"]
     salon = conexion.execute("SELECT id_salon FROM salon ORDER BY id_salon DESC LIMIT 1").fetchone()["id_salon"]
+    _aislar_salon(conexion, salon)
     conexion.execute(
         """INSERT INTO evento (clave_proyecto, id_cliente, id_salon, fecha_evento, hora_inicio,
                                hora_fin, num_asistentes, costo_total, estado)

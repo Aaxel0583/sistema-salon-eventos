@@ -9,9 +9,11 @@ operaciones de estas clases sirven para presentar información, no para
 autorizar cambios.
 
 Sprint 1: Usuario, Salon, Platillo y Paquete.
-Sprint 2-3: Evento, Pago y Bitacora se agregan en este mismo módulo.
+Sprint 2: Evento (HU-005, HU-006) y OcupacionSalon (IB-10).
+Sprint 3: Pago se agrega en este mismo módulo.
 """
 from dataclasses import dataclass, field
+from datetime import date, time
 from decimal import Decimal
 
 # ---------------------------------------------------------------------
@@ -194,6 +196,157 @@ class Paquete:
 
 
 # ---------------------------------------------------------------------
+# Evento · compromiso contratado (HU-005, HU-006)
+# ---------------------------------------------------------------------
+ESTADO_COTIZACION = "COTIZACION"
+ESTADO_CONFIRMADO = "CONFIRMADO"
+ESTADO_REALIZADO = "REALIZADO"
+ESTADO_CANCELADO = "CANCELADO"
+
+ESTADOS_EVENTO = {                # RN-11 · espejo de ck_evento_estado
+    ESTADO_COTIZACION: "Cotización",
+    ESTADO_CONFIRMADO: "Confirmado",
+    ESTADO_REALIZADO: "Realizado",
+    ESTADO_CANCELADO: "Cancelado",
+}
+ESTADOS_ABIERTOS = {ESTADO_COTIZACION, ESTADO_CONFIRMADO}
+
+
+@dataclass
+class Evento:
+    """Fila de la vista IB-01 (vw_evento_detalle)."""
+
+    id_evento: int
+    clave_proyecto: str
+    fecha_evento: date
+    hora_inicio: time
+    hora_fin: time
+    num_asistentes: int
+    costo_total: Decimal
+    estado: str
+    id_cliente: int
+    nombre_cliente: str
+    id_salon: int
+    nombre_salon: str
+    capacidad_maxima: int
+    nombre_evento: str | None = None
+    finiquitado: str = "N"
+    fecha_finiquito: date | None = None
+    correo_cliente: str | None = None
+    telefono_cliente: str | None = None
+    id_gerente: int | None = None
+    nombre_gerente: str | None = None
+    id_paquete: int | None = None
+    nombre_paquete: str | None = None
+    total_pagado: Decimal = Decimal("0")
+    saldo: Decimal = Decimal("0")
+
+    @classmethod
+    def desde_fila(cls, fila: dict) -> "Evento":
+        campos = cls.__dataclass_fields__
+        return cls(**{k: v for k, v in fila.items() if k in campos})
+
+    # ------------------------------ lectura ------------------------------
+    @property
+    def titulo(self) -> str:
+        """Lo que se muestra cuando no se capturó nombre del evento."""
+        return self.nombre_evento or f"Evento de {self.nombre_cliente}"
+
+    @property
+    def estado_legible(self) -> str:
+        return ESTADOS_EVENTO.get(self.estado, self.estado)
+
+    @property
+    def esta_abierto(self) -> bool:
+        return self.estado in ESTADOS_ABIERTOS
+
+    @property
+    def esta_finiquitado(self) -> bool:
+        return self.finiquitado == "S"
+
+    @property
+    def horario(self) -> str:
+        return f"{self.hora_inicio:%H:%M} a {self.hora_fin:%H:%M}"
+
+    @property
+    def contacto_cliente(self) -> str:
+        return unir_contacto(self.correo_cliente, self.telefono_cliente)
+
+    def pendiente_de_cierre(self, hoy: date) -> bool:
+        """IB-11 · RN-14: la fecha pasó y nadie ha dicho si se realizó."""
+        return self.esta_abierto and self.fecha_evento < hoy
+
+    # ------------------------ ciclo de vida (SDD §5.3) ------------------------
+    def estados_siguientes(self, hoy: date) -> list[str]:
+        """
+        Estatus a los que puede pasar el evento hoy (Figura 25).
+
+        - Cotización -> Confirmado (el cliente acepta), mientras la fecha no haya pasado.
+        - Cotización o Confirmado -> Realizado, solo si la fecha ya llegó.
+        - Cotización o Confirmado -> Cancelado, en cualquier momento.
+        - Realizado y Cancelado cierran el ciclo: no tienen salida.
+        El sistema nunca cambia el estatus por su cuenta (RN-14, DA-04).
+        """
+        if not self.esta_abierto:
+            return []
+        siguientes = []
+        if self.estado == ESTADO_COTIZACION and self.fecha_evento >= hoy:
+            siguientes.append(ESTADO_CONFIRMADO)
+        if self.fecha_evento <= hoy:
+            siguientes.append(ESTADO_REALIZADO)
+        siguientes.append(ESTADO_CANCELADO)
+        return siguientes
+
+    def motivo_rechazo_estado(self, nuevo: str, hoy: date) -> str | None:
+        """Explica por qué no procede el cambio (RNF-12); None si procede."""
+        if nuevo == self.estado:
+            return f"El evento ya está en estatus {self.estado_legible}."
+        if not self.esta_abierto:
+            return (f"El evento {self.clave_proyecto} está {self.estado_legible.lower()} "
+                    "y ya cerró su ciclo: su estatus no se puede cambiar.")
+        if nuevo in self.estados_siguientes(hoy):
+            return None
+        if nuevo == ESTADO_REALIZADO:
+            return (f"El evento es el {self.fecha_evento:%d/%m/%Y}: no se puede marcar como "
+                    "realizado antes de su fecha.")
+        if nuevo == ESTADO_CONFIRMADO and self.fecha_evento < hoy:
+            return ("La fecha del evento ya pasó: indica si se realizó o se canceló.")
+        return (f"Un evento en {self.estado_legible.lower()} no puede pasar a "
+                f"{ESTADOS_EVENTO.get(nuevo, nuevo).lower()}.")
+
+
+# ---------------------------------------------------------------------
+# OcupacionSalon · medidor del tablero (IB-10)
+# ---------------------------------------------------------------------
+UMBRAL_OCUPACION_ALTA = 80       # % a partir del cual el medidor se pinta en rojo
+
+
+@dataclass
+class OcupacionSalon:
+    id_salon: int
+    nombre: str
+    capacidad_maxima: int
+    eventos_proximos: int
+    mayor_aforo: int
+    ocupacion_promedio: int
+    disponible: str = "S"
+
+    @classmethod
+    def desde_fila(cls, fila: dict) -> "OcupacionSalon":
+        campos = cls.__dataclass_fields__
+        return cls(**{k: v for k, v in fila.items() if k in campos})
+
+    @property
+    def porcentaje(self) -> int:
+        """Acotado a 0-100 para el medidor."""
+        return max(0, min(100, self.ocupacion_promedio))
+
+    @property
+    def es_alta(self) -> bool:
+        return self.ocupacion_promedio > UMBRAL_OCUPACION_ALTA
+
+
+# ---------------------------------------------------------------------
 # Textos legibles de las acciones de bitácora (RF-41)
 # ---------------------------------------------------------------------
 ACCIONES_BITACORA = {
@@ -206,6 +359,9 @@ ACCIONES_BITACORA = {
     "ALTA_PAQUETE": "Alta de paquete",
     "EDITAR_PAQUETE": "Edición de paquete",
     "BAJA_PAQUETE": "Baja de paquete",
+    "ALTA_EVENTO": "Registro de evento",
+    "CAMBIO_ESTATUS": "Cambio de estatus de evento",
+    "ASIGNAR_GERENTE": "Asignación de gerente",
     "ALTA_GERENTE_CONSOLA": "Alta de gerente (consola)",
     "REGENERAR_CLAVE_CONSOLA": "Clave regenerada (consola)",
 }

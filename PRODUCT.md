@@ -33,8 +33,9 @@ Es a la vez un proyecto escolar (entregado y evaluado con SRS/SDD bajo ISO/IEC 2
 ## Capabilities and Constraints
 
 - **Sprint 1 (hecho):** acceso con bloqueo al quinto intento, cambio obligatorio de clave inicial, directorio y alta de clientes, edición de los tres salones, catálogo de platillos por categoría, paquetes estándar y personalizados (un personalizado pertenece a un cliente).
-- **Sprint 2 (pendiente):** eventos, cotización, reservación, pagos, tablero con indicadores (HU-006) y portal real del cliente (HU-008).
-- **Sprint 3 (pendiente):** reportes.
+- **Sprint 2 · Parte 1 (hecho):** reservación con cotización en vivo y alta del cliente en la misma pantalla, clave de evento EVT-AAAA-NNNN, listado con filtros, ficha con gerente responsable y estatus, y panel con ocupación por salón y eventos vencidos por cerrar (HU-005, HU-006).
+- **Sprint 2 · Parte 2 (pendiente):** aforo y traslape validados en la base (HU-007) y portal real del cliente (HU-008).
+- **Sprint 3 (pendiente):** pagos, finiquito y reportes.
 - Stack fijo: Python 3.11, Flask, HTML/CSS sin framework, JavaScript sin dependencias, PostgreSQL en Neon (nivel gratuito, conexiones limitadas). Despliegue de demostración en Render.
 - CSP estricta: solo recursos propios, sin estilos ni scripts en línea.
 - Idioma: español de México (`es-MX`), moneda MXN.

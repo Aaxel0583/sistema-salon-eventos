@@ -1,17 +1,17 @@
 """
-Tablero del gerente · C-08 · IU-03 · /panel
+Tablero del gerente · C-08 · IU-03 · /panel · HU-006
 
-Sprint 1: resumen de catálogos y actividad reciente.
-Sprint 2 (HU-006): indicadores, ocupación por salón y eventos por cerrar.
+Sigue DESIGN.md («Panel»): hoja de agenda con la fecha de hoy, conteos en
+una línea bajo el título y, primero, los Pendientes con su acción.
+Sprint 1: clientes bloqueados y salones no disponibles.
+Sprint 2: indicadores de eventos (IB-01), ocupación por salón (IB-10) y
+eventos cuya fecha pasó sin cerrarse (IB-11, RN-14).
 """
 from flask import Blueprint, render_template
 
-from app.datos.conexion import BaseDatos
-from app.datos.repositorio_bitacora import RepositorioBitacora
-from app.datos.repositorio_catalogos import RepositorioPaquetes, RepositorioSalones
-from app.datos.repositorio_usuarios import RepositorioUsuarios
-from app.dominio.modelos import ACCIONES_BITACORA, ROL_CLIENTE
+from app.dominio.modelos import ACCIONES_BITACORA
 from app.seguridad.decoradores import solo_gerente
+from app.servicios.servicio_eventos import ServicioEventos
 
 bp = Blueprint("panel", __name__)
 
@@ -22,18 +22,5 @@ _DIAS = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domin
 @bp.get("/panel")
 @solo_gerente
 def inicio():
-    with BaseDatos.transaccion() as cur:
-        usuarios = RepositorioUsuarios(cur)
-        # La fecha sale de la base: su zona horaria es la del salón (conexion.py).
-        cur.execute("SELECT CURRENT_DATE AS hoy")
-        hoy = cur.fetchone()["hoy"]
-        resumen = {
-            "salones": RepositorioSalones(cur).listar(),
-            "clientes": usuarios.contar_por_rol(ROL_CLIENTE),
-            "bloqueados": usuarios.clientes_bloqueados(),
-            "paquetes": RepositorioPaquetes(cur).contar(),
-            # Los inicios de sesión son ruido para el gerente; siguen en la bitácora.
-            "actividad": RepositorioBitacora(cur).recientes(10, excluir=("INICIO_SESION",)),
-        }
-    return render_template("panel.html", acciones=ACCIONES_BITACORA, hoy=hoy,
-                           MESES=_MESES, DIAS=_DIAS, **resumen)
+    return render_template("panel.html", tablero=ServicioEventos().tablero(),
+                           acciones=ACCIONES_BITACORA, MESES=_MESES, DIAS=_DIAS)

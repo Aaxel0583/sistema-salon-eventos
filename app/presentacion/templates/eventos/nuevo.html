@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{# IU-06 · Formulario de reservación · SDD Figura 32 · C-04 · HU-005
+   RF-12 alta del cliente en la misma pantalla · RF-20 captura · RF-21 cotización
+   RF-23 lugares disponibles y aviso de aforo excedido.
+   La cotización se recalcula en el navegador con los precios que ya vienen en
+   las opciones (RNF-01: sin recargar ni consultar al servidor). El costo que
+   vale es el que calcula la base al guardar (RN-09, trg_evento_costo).
+   La consulta de agenda (RF-24) y los rechazos BF001/BF002 llegan con HU-007. #}
+{% block titulo %}Nueva reservación{% endblock %}
+{% block contenido %}
+{% set nuevo = datos.cliente_nuevo == 'S' or not clientes %}
+<div class="encabezado">
+  <h1>Nueva reservación</h1>
+</div>
+
+<form method="post" action="{{ url_for('eventos.registrar') }}" class="reservacion" novalidate data-reservacion>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="reservacion__captura">
+    {# ---------------- Cliente: existente o alta rápida (RF-12) ---------------- #}
+    <fieldset class="panel panel--suave bloque-cliente">
+      <legend>Cliente</legend>
+
+      <div class="campo" data-cliente-existente {% if nuevo %}hidden{% endif %}>
+        <label for="id_cliente" class="solo-lector">Cliente</label>
+        <select id="id_cliente" name="id_cliente">
+          <option value="">Elige un cliente</option>
+          {% for c in clientes %}
+            <option value="{{ c.id_usuario }}" {% if (datos.id_cliente|string) == (c.id_usuario|string) %}selected{% endif %}>
+              {{ c.nombre }}{% if c.contacto %} · {{ c.contacto }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <label class="casilla">
+        <input type="checkbox" id="cliente_nuevo" name="cliente_nuevo" value="S" {% if nuevo %}checked{% endif %}>
+        Cliente nuevo (se da de alta aquí)
+      </label>
+
+      <div class="formulario-linea" data-cliente-nuevo {% if not nuevo %}hidden{% endif %}>
+        <div class="campo campo--ancho">
+          <label for="nombre">Nombre del cliente</label>
+          <input type="text" id="nombre" name="nombre" value="{{ datos.nombre or '' }}" maxlength="120" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="correo">Correo</label>
+          <input type="email" id="correo" name="correo" value="{{ datos.correo or '' }}" maxlength="120"
+                 autocomplete="off" spellcheck="false">
+        </div>
+        <div class="campo">
+          <label for="telefono">Celular</label>
+          <input type="tel" id="telefono" name="telefono" value="{{ datos.telefono or '' }}"
+                 inputmode="numeric" autocomplete="off" placeholder="10 dígitos">
+        </div>
+        <p class="nota campo--completo">Basta con el correo o el celular. Al guardar se genera su clave de acceso.</p>
+      </div>
+    </fieldset>
+
+    {# ---------------- Datos del evento (RF-20) ---------------- #}
+    <div class="fila-campos">
+      <div class="campo campo--completo">
+        <label for="nombre_evento">Nombre del evento <span class="texto-suave">(opcional)</span></label>
+        <input type="text" id="nombre_evento" name="nombre_evento" value="{{ datos.nombre_evento or '' }}"
+               maxlength="120" placeholder="Ej. Boda Robles Márquez" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="fila-campos">
+      <div class="campo">
+        <label for="id_salon">Salón</label>
+        <select id="id_salon" name="id_salon" required>
+          <option value="">Elige un salón</option>
+          {% for s in salones %}
+            <option value="{{ s.id_salon }}" data-renta="{{ s.costo_renta }}" data-capacidad="{{ s.capacidad_maxima }}"
+                    data-nombre="{{ s.nombre }}"
+                    {% if not s.esta_disponible %}disabled{% endif %}
+                    {% if (datos.id_salon|string) == (s.id_salon|string) %}selected{% endif %}>
+              {{ s.nombre }} · {{ s.capacidad_maxima }} personas{% if not s.esta_disponible %} (no disponible){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="id_paquete">Paquete</label>
+        <select id="id_paquete" name="id_paquete" required>
+          <option value="">Elige un paquete</option>
+          {% for p in paquetes %}
+            <option value="{{ p.id_paquete }}" data-precio="{{ p.precio_persona }}" data-cliente="{{ p.id_cliente or '' }}"
+                    {% if (datos.id_paquete|string) == (p.id_paquete|string) %}selected{% endif %}>
+              {{ p.nombre }} · {{ p.precio_persona|moneda }} por persona{% if p.es_personalizado %} (de {{ p.nombre_cliente }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="fila-campos fila-campos--horario">
+      <div class="campo">
+        <label for="fecha_evento">Fecha</label>
+        <input type="date" id="fecha_evento" name="fecha_evento" value="{{ datos.fecha_evento or '' }}"
+               min="{{ hoy.isoformat() }}" required>
+      </div>
+      <div class="campo campo--corto">
+        <label for="hora_inicio">Inicio</label>
+        <input type="time" id="hora_inicio" name="hora_inicio" value="{{ datos.hora_inicio or '' }}" step="300" required>
+      </div>
+      <div class="campo campo--corto">
+        <label for="hora_fin">Término</label>
+        <input type="time" id="hora_fin" name="hora_fin" value="{{ datos.hora_fin or '' }}" step="300" required>
+      </div>
+      <div class="campo campo--corto">
+        <label for="num_asistentes">Invitados</label>
+        <input type="number" id="num_asistentes" name="num_asistentes" value="{{ datos.num_asistentes or '' }}"
+               min="1" step="1" inputmode="numeric" required>
+      </div>
+    </div>
+
+    {# Avisos en vivo (Anexo C del SDD): rojo = regla violada, el botón se deshabilita. #}
+    <div class="aviso aviso--error" role="alert" data-aviso-aforo hidden></div>
+    <div class="aviso aviso--error" role="alert" data-aviso-horario hidden></div>
+  </div>
+
+  {# ---------------- Panel de cotización (RF-21, RF-23) ---------------- #}
+  <aside class="panel panel--suave cotizacion" aria-labelledby="t-cotizacion" aria-live="polite">
+    <h2 id="t-cotizacion">Cotización</h2>
+    <dl class="cotizacion__desglose">
+      <div><dt>Renta del salón</dt><dd data-cot-renta>—</dd></div>
+      <div><dt data-cot-paquete-etiqueta>Paquete × 0 pers.</dt><dd data-cot-paquete>—</dd></div>
+    </dl>
+    <dl class="cotizacion__total">
+      <div><dt>Total</dt><dd data-cot-total>—</dd></div>
+    </dl>
+    <dl class="cotizacion__lugares">
+      <div><dt>Lugares disponibles</dt><dd data-cot-lugares>—</dd></div>
+    </dl>
+    <p class="nota">Se recalcula al cambiar salón, paquete o número de invitados.</p>
+
+    <button type="submit" class="boton boton--primario boton--ancho" data-guardar>Guardar reservación</button>
+    <p class="nota cotizacion__motivo" data-motivo hidden></p>
+    <a class="enlace-cancelar" href="{{ url_for('eventos.listado') }}">Cancelar</a>
+  </aside>
+</form>
+{% endblock %}

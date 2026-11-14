@@ -5,8 +5,9 @@ Ejecuta en orden los scripts numerados de esta carpeta contra la base
 indicada en DATABASE_URL (.env). Útil en Windows, donde no siempre se
 tiene psql instalado.
 
-  python -m basedatos.instalar              # 01, 02, 03
-  python -m basedatos.instalar --reiniciar  # 00 (borra todo) y luego 01, 02, 03
+  python -m basedatos.instalar              # 01 a 04
+  python -m basedatos.instalar --reiniciar  # 00 (borra todo) y luego 01 a 04
+  python -m basedatos.instalar --solo 04_eventos_sprint2.sql   # actualizar una base ya instalada
 """
 import argparse
 import sys
@@ -17,7 +18,7 @@ import psycopg
 from app.config import Configuracion
 
 CARPETA = Path(__file__).parent
-SCRIPTS = ["01_esquema.sql", "02_reglas_sprint1.sql", "03_semilla.sql"]
+SCRIPTS = ["01_esquema.sql", "02_reglas_sprint1.sql", "03_semilla.sql", "04_eventos_sprint2.sql"]
 
 
 def main(argv=None) -> int:
@@ -25,10 +26,19 @@ def main(argv=None) -> int:
     parser.add_argument("--reiniciar", action="store_true",
                         help="borra el esquema antes de instalar (solo desarrollo)")
     parser.add_argument("--url", help="cadena de conexión distinta a DATABASE_URL")
+    parser.add_argument("--solo", nargs="+", metavar="SCRIPT",
+                        help="ejecuta solo estos scripts (p. ej. al pasar de un sprint a otro)")
     args = parser.parse_args(argv)
 
     url = args.url or Configuracion.desde_entorno().database_url
-    scripts = (["00_limpiar.sql"] if args.reiniciar else []) + SCRIPTS
+    if args.solo:
+        desconocidos = [s for s in args.solo if s not in SCRIPTS]
+        if desconocidos:
+            print(f"Scripts desconocidos: {', '.join(desconocidos)}", file=sys.stderr)
+            return 1
+        scripts = args.solo
+    else:
+        scripts = (["00_limpiar.sql"] if args.reiniciar else []) + SCRIPTS
 
     if args.reiniciar:
         respuesta = input("Se borrarán TODAS las tablas y datos. Escribe BORRAR para continuar: ")
