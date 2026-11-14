@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{# Respuesta de IU-06 cuando el cliente se dio de alta en la misma pantalla (RF-12).
+   La clave inicial se muestra UNA sola vez (RF-08) y no se guarda en la sesión.
+   Mismo bloque que IU-04 (DESIGN.md «Clave generada»): va primero, con copia del
+   mensaje y confirmación de entrega; mientras no se confirme, el navegador avisa al salir. #}
+{% block titulo %}Reservación registrada{% endblock %}
+{% block contenido %}
+{% set contacto = clave_mostrada.contacto|contacto %}
+<section class="clave-generada" role="status" aria-labelledby="t-clave" data-clave-generada
+         data-mensaje="Tu acceso a {{ nombre_negocio }}: entra con {{ contacto }} y la clave {{ clave_mostrada.clave_inicial }}. Ahí verás tu evento {{ evento.clave_proyecto }}. Al entrar te pedirá cambiar la clave.">
+  <h2 id="t-clave">Cliente registrado: {{ clave_mostrada.nombre }}</h2>
+  <div class="clave-generada__fila">
+    <span>Clave inicial:</span>
+    <span class="clave-generada__valor">{{ clave_mostrada.clave_inicial }}</span>
+    <span class="texto-suave">Entra con {{ contacto }}</span>
+  </div>
+  <p class="clave-generada__aviso">Entrégala al cliente ahora: no volverá a mostrarse.</p>
+  <div class="acciones">
+    <button type="button" class="boton boton--primario" data-copiar-clave hidden>Copiar mensaje para el cliente</button>
+    <button type="button" class="boton" data-clave-entregada hidden>Ya la entregué</button>
+  </div>
+</section>
+
+<div class="encabezado">
+  <h1>Reservación registrada</h1>
+</div>
+
+<section class="panel" aria-labelledby="t-evento">
+  <h2 id="t-evento">{{ evento.clave_proyecto }} · {{ evento.titulo }}</h2>
+  <dl class="datos">
+    <div><dt>Salón</dt><dd>{{ evento.nombre_salon }}</dd></div>
+    <div><dt>Fecha y horario</dt><dd>{{ evento.fecha_evento|fecha }} · {{ evento.horario }}</dd></div>
+    <div><dt>Invitados</dt><dd>{{ evento.num_asistentes }}</dd></div>
+    <div><dt>Paquete</dt><dd>{{ evento.nombre_paquete or '—' }}</dd></div>
+    <div><dt>Costo total</dt><dd>{{ evento.costo_total|moneda }}</dd></div>
+    <div><dt>Estatus</dt><dd>{% with e = evento %}{% include "eventos/_estado.html" %}{% endwith %}</dd></div>
+  </dl>
+  <div class="acciones">
+    <a class="boton boton--primario" href="{{ url_for('eventos.ficha', id_evento=evento.id_evento) }}">Ver ficha del evento</a>
+    <a class="boton" href="{{ url_for('eventos.nuevo') }}">Nueva reservación</a>
+  </div>
+</section>
+{% endblock %}

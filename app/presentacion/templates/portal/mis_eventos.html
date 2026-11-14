@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{# IU-09 · Mis eventos · SDD Figura 35 · C-07 · HU-008 · RF-39
+   Solo llegan los eventos del titular de la sesión: el filtro se aplica en la
+   consulta (RNF-06), no aquí. Pantalla de solo lectura: ninguna acción modifica. #}
+{% block titulo %}Mis eventos{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Mis eventos</h1>
+</div>
+
+{% if lista.eventos %}
+  {% for titulo, grupo in (("Próximos", lista.proximos), ("Anteriores", lista.anteriores), ("Cancelados", lista.cancelados)) if grupo %}
+    <section class="grupo-eventos" aria-labelledby="t-grupo-{{ loop.index }}">
+      <h2 id="t-grupo-{{ loop.index }}">{{ titulo }}</h2>
+      <ul class="eventos-cliente">
+        {% for e in grupo %}
+          <li class="evento-cliente">
+            <div class="evento-cliente__cabeza">
+              <a class="evento-cliente__titulo" href="{{ url_for('portal.detalle', clave=e.clave_proyecto) }}">{{ e.titulo }}</a>
+              <span class="evento-cliente__estado">{% include "eventos/_estado.html" %}</span>
+            </div>
+            <p class="evento-cliente__datos">
+              <span class="cifra">{{ e.clave_proyecto }}</span> ·
+              <span class="cifra">{{ e.fecha_evento|fecha_larga }}</span>, {{ e.horario }} · {{ e.nombre_salon }}
+            </p>
+            {# Dinero por estatus (DESIGN.md): una cotización no es deuda y un cancelado no se cobra #}
+            {% if e.horario_tomado %}
+              <p class="evento-cliente__saldo aviso-linea">Esa fecha ya no está disponible: otro evento la apartó con anticipo.</p>
+            {% elif e.estado == 'COTIZACION' %}
+              <p class="evento-cliente__saldo">Total cotizado <strong class="cifra">{{ e.costo_total|moneda }}</strong></p>
+            {% elif e.estado != 'CANCELADO' %}
+              <p class="evento-cliente__saldo">
+                {% if e.saldo > 0 %}
+                  Saldo pendiente <strong class="cifra">{{ e.saldo|moneda }}</strong>
+                {% else %}
+                  <strong class="cifra--verde">Liquidado</strong>
+                {% endif %}
+              </p>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+{% else %}
+  <section class="panel">
+    <p>Aquí podrás consultar el salón, el menú contratado, tus pagos y tu saldo pendiente.</p>
+    <p class="texto-suave">Si ya reservaste y no ves tu evento, comunícate con el gerente del salón{% if telefono_negocio %}: <a href="tel:{{ telefono_negocio|replace(' ', '') }}">{{ telefono_negocio|contacto }}</a>{% endif %}.</p>
+  </section>
+{% endif %}
+{% endblock %}
