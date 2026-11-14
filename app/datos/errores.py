@@ -69,7 +69,8 @@ def traducir_error(error: psycopg.Error) -> ErrorDominio:
     codigo = getattr(error, "sqlstate", None) or ""
 
     # 1) Reglas impuestas por triggers y procedimientos: RAISE ... ERRCODE 'BFnnn'.
-    #    El mensaje ya viene redactado para el usuario y con los valores.
+    #    El mensaje ya viene redactado para el usuario y con los valores
+    #    (BF001 aforo y BF002 traslape, de HU-007, llegan por aquí).
     if codigo.startswith("BF"):
         return ErrorNegocio(error.diag.message_primary, codigo)
 

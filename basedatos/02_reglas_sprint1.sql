@@ -58,6 +58,10 @@ DECLARE
     v_mayor_aforo INTEGER;
 BEGIN
     IF NEW.capacidad_maxima < OLD.capacidad_maxima THEN
+        -- Mismo candado que toma IB-02 al reservar (script 05): si una reserva
+        -- del salón está en curso, la reducción espera y ya ve ese evento.
+        PERFORM pg_advisory_xact_lock(hashtext('agenda_salon'), NEW.id_salon);
+
         SELECT MAX(e.num_asistentes)
           INTO v_mayor_aforo
           FROM evento e

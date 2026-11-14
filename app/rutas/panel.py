@@ -15,12 +15,9 @@ from app.servicios.servicio_eventos import ServicioEventos
 
 bp = Blueprint("panel", __name__)
 
-_MESES = ("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
-_DIAS = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
-
 
 @bp.get("/panel")
 @solo_gerente
 def inicio():
     return render_template("panel.html", tablero=ServicioEventos().tablero(),
-                           acciones=ACCIONES_BITACORA, MESES=_MESES, DIAS=_DIAS)
+                           acciones=ACCIONES_BITACORA)

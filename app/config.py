@@ -42,6 +42,7 @@ class Configuracion:
     # Reglas fijas del dominio (SRS); no dependen de la instalación.
     MAX_INTENTOS_FALLIDOS: int = 5          # RF-03
     DURACION_SESION: timedelta = timedelta(hours=8)
+    telefono_negocio: str = ""             # opcional: el portal lo ofrece como contacto
 
     @classmethod
     def desde_entorno(cls) -> "Configuracion":
@@ -52,4 +53,5 @@ class Configuracion:
             cookie_segura=os.getenv("COOKIE_SEGURA", "0") == "1",
             pool_min=int(os.getenv("POOL_MIN", "1")),
             pool_max=int(os.getenv("POOL_MAX", "5")),
+            telefono_negocio=os.getenv("TELEFONO_NEGOCIO", "").strip(),
         )

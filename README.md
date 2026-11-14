@@ -2,13 +2,13 @@
 
 Aplicación web para cotizar, reservar y cobrar eventos en un salón con tres espacios. Python 3.11 + Flask, HTML5/CSS3 sin framework y PostgreSQL con las reglas críticas en PL/pgSQL (SRS v2.0 §4.5, SDD v2.0).
 
-**Estado: Sprint 2 · Parte 1 (Release 2 en construcción)**
+**Estado: Sprint 2 terminado (Release 2 · Operación y Aforo)**
 
 | Sprint | Historias | Estado |
 |---|---|---|
 | 1 · Núcleo y catálogos | HU-001 Autenticación · HU-002 Alta de clientes · HU-003 Salones · HU-004 Platillos y paquetes | Terminado |
 | 2 · Parte 1 | HU-005 Registro y cotización de eventos · HU-006 Tablero y gestión de eventos | Terminado |
-| 2 · Parte 2 | HU-007 Aforo y traslape en la base (BF001, BF002) · HU-008 Portal del cliente | Pendiente |
+| 2 · Parte 2 | HU-007 Aforo y traslape en la base (BF001, BF002) · HU-008 Portal del cliente | Terminado |
 | 3 | HU-009 a HU-012 Pagos, finiquito y reportes | Pendiente |
 
 ---
@@ -92,17 +92,24 @@ basedatos/01_esquema.sql         tablas, llaves y restricciones (RN-06, RN-07, R
 basedatos/02_reglas_sprint1.sql  triggers BF003, BF004 y bitácora inalterable
 basedatos/03_semilla.sql         3 salones, 13 platillos y 3 paquetes estándar
 basedatos/04_eventos_sprint2.sql clave EVT-AAAA-NNNN, cotización y vistas del tablero (IB-01, IB-07, IB-10, IB-11)
+basedatos/05_reglas_sprint2.sql  triggers de aforo BF001 (IB-02) y de disponibilidad BF002 (IB-03)
 ```
 
-### Actualizar una base que ya tiene el Sprint 1
+### Actualizar una base que ya tiene un sprint anterior
 
-Si tu base de Neon ya tiene los scripts 01 a 03 **no uses `--reiniciar`** (borraría los datos). Ejecuta solo el script nuevo:
+Si tu base de Neon ya tiene datos **no uses `--reiniciar`** (los borraría). Ejecuta solo los scripts que te faltan:
 
 ```bash
-python -m basedatos.instalar --solo 04_eventos_sprint2.sql
+# Base con el Sprint 1 (scripts 01 a 03)
+python -m basedatos.instalar --solo 02_reglas_sprint1.sql 04_eventos_sprint2.sql 05_reglas_sprint2.sql
+
+# Base con el Sprint 2 · Parte 1 (scripts 01 a 04)
+python -m basedatos.instalar --solo 02_reglas_sprint1.sql 05_reglas_sprint2.sql
 ```
 
-El script es re-ejecutable: correrlo dos veces no duplica nada.
+El script 02 se vuelve a ejecutar porque su trigger de reducción de capacidad (BF004) ahora comparte un candado con el de aforo (BF001). Todos los scripts son re-ejecutables: correrlos dos veces no duplica nada.
+
+Si la base ya tenía eventos capturados antes de instalar el script 05, el instalador avisa cuántos exceden el aforo o se enciman. No modifica nada: corrígelos desde **Eventos**.
 
 `00_limpiar.sql` borra todo; úsalo solo en desarrollo (`python -m basedatos.instalar --reiniciar`).
 
@@ -145,6 +152,9 @@ Sin `TEST_DATABASE_URL` solo corren las unitarias; las de integración se marcan
 | `tests/test_flujos.py` | Flujos web completos: CP-01, CP-02, CP-03, CP-21, CP-22, CP-25 y RF-05 |
 | `tests/test_unitarias_eventos.py` | Ciclo de vida del evento (SDD §5.3), ocupación (IB-10) y validación de la captura de IU-06 |
 | `tests/test_eventos.py` | CP-07, CP-08, CP-09, CP-24, RN-09, alta conjunta (RF-12, DA-05), tablero (IB-10, IB-11) y RF-05 |
+| `tests/test_unitarias_disponibilidad.py` | Traslape de horarios para la agenda (RF-24, RF-27), respuesta de `/api/agenda` y lectura de pagos |
+| `tests/test_disponibilidad.py` | CP-10, CP-11, CP-12 y CP-19 completo: BF001 y BF002 por SQL directo y desde la pantalla, reservas simultáneas y consulta de agenda |
+| `tests/test_portal.py` | CP-13: el cliente ve solo sus eventos, con menú, pagos y saldo; el evento ajeno se niega (RNF-06) |
 
 ## 10. Estructura y correspondencia con el SDD
 

@@ -40,9 +40,17 @@ def listado():
         "texto": request.args.get("q", ""),
     }
     eventos, hoy = _eventos.listar(**filtros)
+    # Lo vencido sin cerrar va primero: es lo único que pide una acción (RN-14).
+    por_cerrar = [e for e in eventos if e.pendiente_de_cierre(hoy)]
+    vigentes = [e for e in eventos if e.estado != "CANCELADO" and e not in por_cerrar]
+    grupos = [("Por cerrar", por_cerrar),
+              ("Próximos", [e for e in vigentes if e.fecha_evento >= hoy]),
+              ("Anteriores", [e for e in vigentes if e.fecha_evento < hoy]),
+              ("Cancelados", [e for e in eventos if e.estado == "CANCELADO"])]
     return render_template(
         "eventos/listado.html",
         eventos=eventos,
+        grupos=[(titulo, lista) for titulo, lista in grupos if lista],
         hoy=hoy,
         salones=ServicioSalones().listar(),
         estados=ESTADOS_EVENTO,
