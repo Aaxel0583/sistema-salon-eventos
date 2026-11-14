@@ -157,7 +157,7 @@ pg_restore --no-owner --dbname="$URL_DESTINO" respaldo_2026-11-20.dump
 ## 8. Pruebas
 
 ```bash
-pytest -v                      # 223 pruebas; las de integración necesitan TEST_DATABASE_URL
+pytest -v                      # 228 pruebas; las de integración necesitan TEST_DATABASE_URL
 pytest tests/test_pagos.py -v  # un módulo
 ```
 

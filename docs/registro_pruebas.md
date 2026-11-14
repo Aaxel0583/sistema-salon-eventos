@@ -4,35 +4,35 @@ Entregable *Test Report* del proceso de Implementación de Software (ISO/IEC 291
 
 | Dato | Valor |
 |---|---|
-| Fecha de ejecución | 11 de noviembre de 2026 |
+| Fecha de ejecución | 14 de noviembre de 2026 (regresión oficial). Primera corrida en desarrollo: 11 de noviembre |
 | Versión probada | Rama `feature/HU-009-HU-012` (Release 3) |
-| Entorno | Python 3.12, Flask 3.1.1, psycopg 3.2.9, PostgreSQL 16 local con el esquema instalado desde los scripts 01 a 06 |
+| Entorno | Windows, Python 3.11.9 (versión del plan), pytest 8.3.5, base de pruebas de `TEST_DATABASE_URL` reinstalada desde los scripts 00 a 06 |
 | Comando | `pytest -v` |
-| Resultado | **223 pruebas ejecutadas · 223 aprobadas · 0 fallidas · 0 omitidas** (45 s) |
+| Resultado | **228 pruebas ejecutadas · 228 aprobadas · 0 fallidas · 0 omitidas** (641.57 s) |
 | Revisión en navegador | Chromium, a 1280 px y a 360 px: ficha con pagos, tres reportes y tablero; flujo de abono, rechazo, finiquito y descarga |
 
-> Pendiente del equipo: repetir `pytest -v` contra la rama `pruebas` de Neon y en la versión de Python del plan (3.11), y anexar aquí la salida. Las pruebas de aceptación con el cliente (semana 14) se registran aparte, en el acta.
+> La regresión se repitió el 14/11/2026 en Python 3.11.9, la versión del plan. La corrida previa del 11/11 (Python 3.12, PostgreSQL local) contó 223 pruebas: la diferencia son las 5 que agregaron las revisiones de diseño 3 a 5 del Sprint 2 (4 en `test_eventos.py`, 1 en `test_unitarias.py`). Las pruebas de aceptación con el cliente (semana 14) se registran aparte, en el acta.
 
 ## 1. Resultado por archivo
 
 | Archivo | Tipo | Pruebas | Aprobadas |
 |---|---|---|---|
-| `test_unitarias.py` | Unitaria | 32 | 32 |
+| `test_unitarias.py` | Unitaria | 33 | 33 |
 | `test_unitarias_eventos.py` | Unitaria | 22 | 22 |
 | `test_unitarias_disponibilidad.py` | Unitaria | 16 | 16 |
 | `test_unitarias_finanzas.py` | Unitaria | 14 | 14 |
 | `test_reglas_bd.py` | Integración (SQL directo) | 7 | 7 |
 | `test_flujos.py` | Integración (web) | 13 | 13 |
-| `test_eventos.py` | Integración | 18 | 18 |
+| `test_eventos.py` | Integración | 22 | 22 |
 | `test_disponibilidad.py` | Integración | 27 | 27 |
 | `test_portal.py` | Integración | 12 | 12 |
 | `test_pagos.py` | Integración | 34 | 34 |
 | `test_reportes.py` | Integración | 22 | 22 |
 | `test_conexion.py` | Integración | 1 | 1 |
 | `test_zz_rendimiento.py` | Rendimiento | 5 | 5 |
-| **Total** | | **223** | **223** |
+| **Total** | | **228** | **228** |
 
-Por sprint: 33 pruebas al cierre del Release 1, 147 al cierre del Release 2 y 223 al cierre del Release 3. Ninguna prueba de los sprints anteriores se modificó para pasar: la regresión es limpia.
+Por sprint: 33 pruebas al cierre del Release 1, 152 al cierre del Release 2 (`feature/HU-007-HU-008`, 152 de 152 aprobadas el 14/11/2026) y 228 al cierre del Release 3. Ninguna prueba de los sprints anteriores se modificó para pasar: la regresión es limpia.
 
 ## 2. Casos de prueba del SRS (Anexo C)
 
