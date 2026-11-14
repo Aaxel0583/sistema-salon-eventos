@@ -34,8 +34,8 @@ Es a la vez un proyecto escolar (entregado y evaluado con SRS/SDD bajo ISO/IEC 2
 
 - **Sprint 1 (hecho):** acceso con bloqueo al quinto intento, cambio obligatorio de clave inicial, directorio y alta de clientes, edición de los tres salones, catálogo de platillos por categoría, paquetes estándar y personalizados (un personalizado pertenece a un cliente).
 - **Sprint 2 · Parte 1 (hecho):** reservación con cotización en vivo y alta del cliente en la misma pantalla, clave de evento EVT-AAAA-NNNN, listado con filtros, ficha con gerente responsable y estatus, y panel con ocupación por salón y eventos vencidos por cerrar (HU-005, HU-006).
-- **Sprint 2 · Parte 2 (pendiente):** aforo y traslape validados en la base (HU-007) y portal real del cliente (HU-008).
-- **Sprint 3 (pendiente):** pagos, finiquito y reportes.
+- **Sprint 2 · Parte 2 (hecho):** aforo y traslape validados en la base (HU-007) y portal del cliente (HU-008). Solo el anticipo aparta el salón: una cotización no lo aparta.
+- **Sprint 3 (hecho):** abonos con control de saldo y finiquito automático (HU-009), cartera con semáforo a 21 días (HU-010), reportes de proyectos activos y realizados (HU-011, HU-012) y descarga en CSV. Un abono registrado no se edita ni se borra.
 - Stack fijo: Python 3.11, Flask, HTML/CSS sin framework, JavaScript sin dependencias, PostgreSQL en Neon (nivel gratuito, conexiones limitadas). Despliegue de demostración en Render.
 - CSP estricta: solo recursos propios, sin estilos ni scripts en línea.
 - Idioma: español de México (`es-MX`), moneda MXN.
@@ -44,7 +44,7 @@ Es a la vez un proyecto escolar (entregado y evaluado con SRS/SDD bajo ISO/IEC 2
 ## Evidence on Hand
 
 - Datos de semilla en `basedatos/03_semilla.sql`: tres salones, trece platillos y tres paquetes estándar.
-- Trazabilidad requisito → código → prueba en `docs/trazabilidad_sprint1.md`; desviaciones respecto a los documentos en `docs/desviaciones_sprint1.md`.
+- Trazabilidad requisito → código → prueba en `docs/trazabilidad_sprint1.md` a `sprint3.md`; desviaciones respecto a los documentos en `docs/desviaciones_sprint1.md` a `sprint3.md`; regresión en `docs/registro_pruebas.md`.
 - No hay testimonios, clientes reales con nombre, fotos del salón ni logotipo en el repositorio. No inventarlos.
 
 ## Product Principles

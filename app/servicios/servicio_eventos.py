@@ -23,7 +23,7 @@ from app.datos.repositorio_catalogos import RepositorioPaquetes, RepositorioSalo
 from app.datos.repositorio_eventos import LIMITE_LISTADO, RepositorioEventos
 from app.datos.repositorio_usuarios import RepositorioUsuarios
 from app.dominio.modelos import (ESTADO_COTIZACION, ESTADOS_EVENTO, Evento, OcupacionSalon,
-                                 Paquete, Salon, Usuario)
+                                 Pago, Paquete, Salon, Usuario)
 from app.servicios.servicio_clientes import ClienteRegistrado, ServicioClientes
 from app.servicios.validaciones import (entero_positivo, fecha, hora,
                                         id_seleccionado, texto_opcional)
@@ -127,8 +127,13 @@ class Tablero:
         return [s for s in self.salones if not s.esta_disponible]
 
     @property
+    def hay_cobranza(self) -> bool:
+        """HU-010 · Cuentas vencidas o que vencen en 21 días (IB-08)."""
+        return bool(self.indicadores.get("cuentas_vencidas") or self.indicadores.get("cuentas_por_vencer"))
+
+    @property
     def hay_pendientes(self) -> bool:
-        return bool(self.pendientes or self.bloqueados or self.salones_no_disponibles)
+        return bool(self.pendientes or self.bloqueados or self.salones_no_disponibles or self.hay_cobranza)
 
 
 @dataclass
@@ -302,15 +307,16 @@ class ServicioEventos:
             repo = RepositorioEventos(cur)
             return repo.listar(estado, id_salon, texto or ""), repo.hoy()
 
-    def obtener(self, id_evento: int) -> tuple[Evento, Paquete | None, list[Usuario], date]:
-        """Ficha del evento (IU-07): evento, paquete con su menú, gerentes y fecha de hoy."""
+    def obtener(self, id_evento: int) -> tuple[Evento, Paquete | None, list[Usuario], date, list[Pago]]:
+        """Ficha del evento (IU-07): evento, paquete con su menú, gerentes, fecha de hoy y pagos."""
         with BaseDatos.transaccion() as cur:
             eventos = RepositorioEventos(cur)
             evento = eventos.por_id(id_evento)
             if evento is None:
                 raise ErrorNoEncontrado("El evento no existe.")
             paquete = RepositorioPaquetes(cur).por_id(evento.id_paquete) if evento.id_paquete else None
-            return evento, paquete, RepositorioUsuarios(cur).listar_gerentes(), eventos.hoy()
+            return (evento, paquete, RepositorioUsuarios(cur).listar_gerentes(), eventos.hoy(),
+                    eventos.pagos(id_evento))
 
     def cambiar_estado(self, id_gerente: int, id_evento: int, nuevo: str) -> Evento:
         """

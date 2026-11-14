@@ -5,9 +5,9 @@ Ejecuta en orden los scripts numerados de esta carpeta contra la base
 indicada en DATABASE_URL (.env). Útil en Windows, donde no siempre se
 tiene psql instalado.
 
-  python -m basedatos.instalar              # 01 a 05
-  python -m basedatos.instalar --reiniciar  # 00 (borra todo) y luego 01 a 05
-  python -m basedatos.instalar --solo 02_reglas_sprint1.sql 05_reglas_sprint2.sql   # actualizar una base ya instalada
+  python -m basedatos.instalar              # 01 a 06
+  python -m basedatos.instalar --reiniciar  # 00 (borra todo) y luego 01 a 06
+  python -m basedatos.instalar --solo 06_finanzas_sprint3.sql   # actualizar una base que ya tiene el Sprint 2
 
 Las advertencias que emite la base (por ejemplo, eventos anteriores que ya
 violan una regla recién instalada) se imprimen tal cual.
@@ -22,7 +22,7 @@ from app.config import Configuracion
 
 CARPETA = Path(__file__).parent
 SCRIPTS = ["01_esquema.sql", "02_reglas_sprint1.sql", "03_semilla.sql", "04_eventos_sprint2.sql",
-           "05_reglas_sprint2.sql"]
+           "05_reglas_sprint2.sql", "06_finanzas_sprint3.sql"]
 
 
 def _mostrar_aviso(aviso) -> None:
