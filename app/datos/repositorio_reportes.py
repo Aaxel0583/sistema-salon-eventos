@@ -10,6 +10,7 @@ from datetime import date
 
 from psycopg import Cursor
 
+from app.datos.repositorio_eventos import COLUMNAS_APARTADO
 from app.dominio.modelos import CuentaCartera, Evento, ProyectoActivo
 
 
@@ -50,7 +51,7 @@ class RepositorioReportes:
             parametros.append(id_salon)
         donde = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
         self._cur.execute(
-            f"""SELECT * FROM vw_proyectos_activos
+            f"""SELECT v.*, {COLUMNAS_APARTADO} FROM vw_proyectos_activos v
                 {donde}
                 ORDER BY fecha_evento, hora_inicio, id_evento""",
             parametros,

@@ -133,7 +133,8 @@ _COLUMNAS_ACTIVOS = [
     Columna("Paquete", lambda e: e.nombre_paquete or "Sin paquete"),
     Columna("Aforo", lambda e: e.aforo),
     Columna("Costo", lambda e: e.costo_total, MONEDA),
-    Columna("Saldo", lambda e: e.saldo, MONEDA),
+    # Una cotización no es deuda (DESIGN.md «Dinero por estatus»): sin saldo en pantalla ni en el CSV
+    Columna("Saldo", lambda e: None if e.estado == ESTADO_COTIZACION else e.saldo, MONEDA),
     Columna("Estatus", lambda e: e.estado_legible, ETIQUETA,
             tono=lambda e: _TONO_ESTADO.get(e.estado, "gris"), papel="estado"),
 ]

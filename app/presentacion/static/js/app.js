@@ -483,15 +483,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const consecuencia = abono.dataset.confirmar;
   const moneda = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
 
+  const tipo = abono.querySelector("#tipo"), referencia = abono.querySelector("#referencia");
+  const anticipo = abono.querySelector('input[name="confirmar"]');
+  const error = abono.querySelector("#monto-error");
+
+  // El diálogo repite lo que se va a guardar (monto · forma · referencia) y los efectos:
+  // un abono no se corrige después. Si el monto excede el saldo, se dice en línea y no se envía.
   const actualizar = () => {
     const valor = parseFloat(monto.value);
+    const excede = valor > saldo + 0.005;
+    error.hidden = !excede;
+    error.textContent = excede ? `Excede el saldo por ${moneda.format(valor - saldo)}. El abono máximo es ${moneda.format(saldo)}.` : "";
+    if (excede) monto.setAttribute("aria-invalid", "true"); else monto.removeAttribute("aria-invalid");
     if (!(valor > 0)) return;
     abono.dataset.titulo = `¿Registrar abono de ${moneda.format(valor)} a ${abono.dataset.clave}?`;
+    const detalle = [moneda.format(valor), tipo.value ? tipo.selectedOptions[0].text : "",
+                     referencia.value.trim() ? `Ref. ${referencia.value.trim()}` : ""].filter(Boolean).join(" · ");
     const liquida = Math.abs(valor - saldo) < 0.005;
-    abono.dataset.confirmar = (liquida
-      ? "Con este abono el saldo llega a cero y el evento queda finiquitado. " : "") + consecuencia;
+    abono.dataset.confirmar = `${detalle}. ` +
+      (anticipo?.checked ? "El evento pasará a Confirmado y apartará su horario. " : "") +
+      (liquida ? "Con este abono el saldo llega a cero y el evento queda finiquitado. " : "") + consecuencia;
   };
-  monto.addEventListener("input", actualizar);
+  abono.addEventListener("input", actualizar);
+  abono.addEventListener("change", actualizar);
+  // Antes que el diálogo: con el monto de más, el foco vuelve al campo con su explicación.
+  abono.addEventListener("submit", (evento) => {
+    actualizar();
+    if (!error.hidden) { evento.preventDefault(); evento.stopImmediatePropagation(); monto.focus(); }
+  }, true);
 
   if (saldo > 0) {
     liquidar.hidden = false;

@@ -26,8 +26,12 @@
 
 {% if evento.horario_tomado %}
   <div class="aviso aviso--aviso" role="status">
-    Ese horario ya lo apartó otro evento con anticipo, así que esta cotización ya no puede confirmarse.
-    Comunícate con el salón para buscar otra fecha u otro horario.
+    {% if evento.apartado_propio %}
+      Ya tienes {{ evento.apartado_por }} confirmado en ese mismo horario, así que esta cotización ya no hace falta.
+    {% else %}
+      Ese horario ya lo apartó otro evento con anticipo, así que esta cotización ya no puede confirmarse.
+      Comunícate con el salón para buscar otra fecha u otro horario.
+    {% endif %}
   </div>
 {% endif %}
 
