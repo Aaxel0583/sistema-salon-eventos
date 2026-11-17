@@ -242,7 +242,7 @@ class ServicioReportes:
         totales = [
             Total("Eventos realizados", cuentas=len(filas),
                   nota=f"{len(filas) - len(con_saldo)} liquidados · {len(con_saldo)} con saldo"),
-            Total("Costo", _suma(filas, "costo_total")),
+            Total("Costo", _suma(filas, "costo_total"), nota="Precio pactado de los eventos listados"),
             Total("Pagado", _suma(filas, "total_pagado"), tono="verde"),
             Total("Saldo restante", _suma(filas, "saldo"), tono="ambar" if con_saldo else ""),
         ]

@@ -478,6 +478,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const abono = document.querySelector("form[data-abono]");
   if (!abono) return;
   const monto = abono.querySelector("#monto");
+  // La rueda del ratón no cambia el monto: se desplaza la página, como en cualquier campo de texto.
+  monto.addEventListener("wheel", () => { if (document.activeElement === monto) monto.blur(); }, { passive: true });
   const liquidar = abono.querySelector("[data-liquidar]");
   const saldo = parseFloat(abono.dataset.saldo);
   const consecuencia = abono.dataset.confirmar;
@@ -521,4 +523,104 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
   actualizar();
+});
+
+/* =====================================================================
+   transitions-dev · movimiento visible (todo decorativo: sin JS la página
+   se ve igual). Pestañas deslizantes, medidores que se llenan y cifras que
+   cuentan. Con «reducir movimiento» nada de esto corre.
+   Los tiempos se leen de los tokens de :root para no desincronizarse del CSS.
+   ===================================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+  const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const raiz = getComputedStyle(document.documentElement);
+  const ms = (token, porDefecto) => parseFloat(raiz.getPropertyValue(token)) || porDefecto;
+  const suave = (t) => 1 - Math.pow(1 - t, 5);   // misma forma que --ease-smooth-out
+  const animar = (duracion, espera, alAvanzar) => {
+    setTimeout(() => {
+      const inicio = performance.now();
+      const paso = (ahora) => {
+        const avance = Math.min(1, (ahora - inicio) / duracion);
+        alAvanzar(suave(avance), avance === 1);
+        if (avance < 1) requestAnimationFrame(paso);
+      };
+      requestAnimationFrame(paso);
+    }, espera);
+  };
+  const guardado = {
+    leer: (k) => { try { const v = sessionStorage.getItem(k); sessionStorage.removeItem(k); return v; } catch { return null; } },
+    poner: (k, v) => { try { sessionStorage.setItem(k, v); } catch { /* sin almacenamiento: sin deslizamiento */ } },
+  };
+
+  // Tabs sliding: la barra azul viaja desde la pestaña de la que vienes hasta la activa.
+  // Las pestañas son enlaces, así que la posición anterior se recuerda al hacer clic.
+  document.querySelectorAll(".pestanas").forEach((barra) => {
+    const tabs = [...barra.querySelectorAll("a")];
+    const activa = tabs.find((t) => t.getAttribute("aria-current") === "page");
+    if (!activa) return;
+    const pill = document.createElement("span");
+    pill.className = "t-tabs-pill";
+    pill.setAttribute("aria-hidden", "true");
+    barra.prepend(pill);
+    barra.classList.add("t-tabs");
+    const clave = "pestana:" + (barra.getAttribute("aria-label") || "");
+
+    const moveTo = (tab, animate) => {
+      const x = tab.offsetLeft + 1;
+      const y = tab.offsetTop + tab.offsetHeight - pill.offsetHeight - 1;
+      if (!animate) {
+        const prev = pill.style.transition;
+        pill.style.transition = "none";
+        pill.style.transform = `translate(${x}px, ${y}px)`;
+        pill.style.width = `${tab.offsetWidth - 2}px`;
+        void pill.offsetWidth;
+        pill.style.transition = prev;
+      } else {
+        pill.style.transform = `translate(${x}px, ${y}px)`;
+        pill.style.width = `${tab.offsetWidth - 2}px`;
+      }
+    };
+
+    tabs.forEach((tab) => tab.addEventListener("click", () => guardado.poner(clave, String(tabs.indexOf(activa)))));
+    const anterior = tabs[Number(guardado.leer(clave))];
+    if (!quieto && anterior && anterior !== activa) {
+      moveTo(anterior, false);
+      requestAnimationFrame(() => requestAnimationFrame(() => moveTo(activa, true)));
+    } else {
+      requestAnimationFrame(() => moveTo(activa, false));
+    }
+    window.addEventListener("resize", () => moveTo(activa, false));
+  });
+
+  if (quieto) return;
+
+  // Medidores de ocupación: se llenan desde cero, uno tras otro.
+  document.querySelectorAll("meter.medidor").forEach((medidor, i) => {
+    const meta = Number(medidor.value);
+    if (!meta) return;
+    medidor.value = 0;
+    const espera = ms("--duration-micro", 80) * (3 + i);
+    animar(ms("--duration-very-slow", 500) * 1.6, espera, (t) => { medidor.value = meta * t; });
+  });
+
+  // Cifras de totales y del resumen del panel: cuentan desde cero hasta su valor.
+  // El ancho final se reserva para que lo de al lado no brinque mientras cuenta.
+  const pesos = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+  const enteros = new Intl.NumberFormat("es-MX");
+  document.querySelectorAll(".total__cifra, .resumen-panel strong").forEach((cifra, i) => {
+    const texto = cifra.textContent.trim();
+    if (!/^\$?[\d,]+(\.\d+)?$/.test(texto)) return;
+    const esMoneda = texto.startsWith("$");
+    const meta = Number(texto.replace(/[$,]/g, ""));
+    if (!meta) return;
+    const escribir = (n) => { cifra.textContent = esMoneda ? pesos.format(n) : enteros.format(Math.round(n)); };
+    cifra.style.display = "inline-block";
+    cifra.style.minWidth = `${cifra.getBoundingClientRect().width}px`;
+    escribir(0);
+    const espera = ms("--duration-micro", 80) * 2 + ms("--duration-stagger", 40) * i;
+    animar(ms("--duration-very-slow", 500) * 1.6, espera, (t, fin) => {
+      if (fin) { cifra.textContent = texto; return; }
+      escribir(esMoneda ? Math.round(meta * t * 100) / 100 : meta * t);
+    });
+  });
 });
