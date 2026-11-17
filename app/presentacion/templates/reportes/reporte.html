@@ -22,17 +22,21 @@
   {% endif %}
 </div>
 
-{# Totales del encabezado. El color solo aparece cuando hay algo que atender. #}
+{# Totales del encabezado. El color solo aparece cuando hay algo que atender (rojo o ámbar);
+   lo vigente no se pinta. «Total por cobrar» manda. Un total con filtro es un enlace a ese filtro. #}
 <ul class="totales">
   {% for t in r.totales %}
-    {% set activo = t.tono and ((t.cuentas or 0) > 0 or (t.importe or 0) > 0) %}
-    <li class="total {% if activo %}total--{{ t.tono }}{% endif %}">
+    {% set activo = t.tono in ('roja', 'ambar') and ((t.cuentas or 0) > 0 or (t.importe or 0) > 0) %}
+    <li class="total {% if activo %}total--{{ t.tono }}{% endif %} {% if t.filtro == '' %}total--principal{% endif %}">
+      {% if t.filtro is not none %}<a class="total__enlace" href="{{ url_for('reportes.' ~ r.clave, semaforo=t.filtro or None) }}"
+         {% if (r.filtros.semaforo or '') == t.filtro %}aria-current="true"{% endif %}>{% endif %}
       <span class="total__etiqueta">{{ t.etiqueta }}</span>
       <span class="total__cifra">{% if t.importe is not none %}{{ t.importe|moneda }}{% else %}{{ t.cuentas }}{% endif %}</span>
       <span class="total__nota">
         {%- if t.importe is not none and t.cuentas is not none %}{{ t.cuentas }} {{ 'cuenta' if t.cuentas == 1 else 'cuentas' }}{% if t.nota %} · {% endif %}{% endif -%}
         {{ t.nota }}
       </span>
+      {% if t.filtro is not none %}</a>{% endif %}
     </li>
   {% endfor %}
 </ul>
@@ -109,15 +113,21 @@
             {% for c in r.columnas %}
               {% set v = c.valor(f) %}
               {% if c.tipo == 'clave' %}
-                <th scope="row" class="tabla__titulo sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=f.id_evento) }}">{{ v }}</a></th>
+                <th scope="row" class="tabla__titulo sin-corte"><a href="{{ url_for('eventos.ficha', id_evento=f.id_evento) }}">{{ v }}</a>
+                  {% if f.horario_tomado %}<span class="aviso-linea tabla__nota">Horario ya apartado por {{ f.apartado_por }}</span>{% endif %}</th>
               {% elif c.tipo == 'etiqueta' %}
                 <td class="tabla__estado"><span class="etiqueta etiqueta--{{ c.tono(f) }}">{{ v }}</span></td>
               {% elif c.tipo == 'moneda' %}
-                <td data-etiqueta="{{ c.titulo }}" class="cifra numero">{{ v|moneda }}</td>
+                <td data-etiqueta="{{ c.titulo }}" class="cifra numero {% if c.titulo == 'Saldo' %}tabla__destacado{% endif %}">{{ v|moneda }}</td>
               {% elif c.tipo == 'fecha' %}
                 <td data-etiqueta="{{ c.titulo }}" class="cifra">{{ v|fecha }}</td>
               {% elif c.tipo == 'contacto' %}
-                <td data-etiqueta="{{ c.titulo }}" class="tabla__contacto">{{ (v|contacto) or '—' }}</td>
+                {# Contacto que se puede tocar: correo y celular abren la app correspondiente #}
+                <td data-etiqueta="{{ c.titulo }}" class="tabla__contacto">
+                  {%- for parte in (v or '').split(' / ') if parte -%}
+                    {% if not loop.first %} · {% endif %}<a href="{{ 'mailto:' ~ parte if '@' in parte else 'tel:' ~ parte }}">{{ parte|contacto }}</a>
+                  {%- else -%}—{%- endfor -%}
+                </td>
               {% else %}
                 <td data-etiqueta="{{ c.titulo }}" {% if c.titulo in ('Plazo', 'Horario', 'Aforo') %}class="cifra"{% endif %}>{{ v }}</td>
               {% endif %}

@@ -25,7 +25,7 @@
             </p>
             {# Dinero por estatus (DESIGN.md): una cotización no es deuda y un cancelado no se cobra #}
             {% if e.horario_tomado %}
-              <p class="evento-cliente__saldo aviso-linea">Esa fecha ya no está disponible: otro evento la apartó con anticipo.</p>
+              <p class="evento-cliente__saldo aviso-linea">{% if e.apartado_propio %}Ya tienes {{ e.apartado_por }} confirmado en ese horario: esta cotización ya no hace falta.{% else %}Esa fecha ya no está disponible: otro evento la apartó con anticipo.{% endif %}</p>
             {% elif e.estado == 'COTIZACION' %}
               <p class="evento-cliente__saldo">Total cotizado <strong class="cifra">{{ e.costo_total|moneda }}</strong></p>
             {% elif e.estado != 'CANCELADO' %}

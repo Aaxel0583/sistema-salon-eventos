@@ -175,3 +175,19 @@ def test_liquidado_cuando_el_saldo_llega_a_cero(cliente_http, crear_usuario):
     assert "Liquidado" in cliente_http.get("/mis-eventos").get_data(as_text=True)
     detalle = cliente_http.get(f"/mis-eventos/{evento.clave_proyecto}").get_data(as_text=True)
     assert "Liquidado" in detalle.split('id="t-cuenta"')[1]          # saldo en cero se dice con palabra
+
+
+def test_portal_fecha_limite_y_choque_con_evento_propio(app, crear_usuario):
+    """RN-13: el cliente ve para cuándo pagar; si su cotización choca con su propio evento
+    confirmado, se le dice que ya tiene la fecha (no que la perdió)."""
+    id_cliente, correo, clave = crear_usuario("CLIENTE")
+    dia = fecha_libre()
+    cotizacion = _evento_de(id_cliente, "Primera idea", dia=dia)
+    confirmado = _evento_de(id_cliente, "La buena", estado="CONFIRMADO", dia=dia)
+    http = app.test_client()
+    _entrar(http, correo, clave)
+    lista = http.get("/mis-eventos").get_data(as_text=True)
+    assert f"Ya tienes {confirmado.clave_proyecto} confirmado" in lista
+    detalle = http.get(f"/mis-eventos/{confirmado.clave_proyecto}").get_data(as_text=True)
+    assert "Paga antes del" in detalle
+    assert cotizacion.clave_proyecto != confirmado.clave_proyecto

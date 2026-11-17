@@ -20,13 +20,14 @@ LIMITE_LISTADO = 200        # filas del listado; la pantalla avisa al llegar aqu
 # Toda lectura de eventos agrega `apartado_por`: la clave del evento confirmado o
 # realizado que ya ocupa ese salón, fecha y horario. Solo le importa a una cotización
 # (D-20): si lo trae, ya no puede confirmarse y la pantalla debe decirlo.
-_SELECT = """SELECT v.*,
-       (SELECT o.clave_proyecto FROM evento o
+_APARTA = """FROM evento o
          WHERE o.id_salon = v.id_salon AND o.fecha_evento = v.fecha_evento
            AND o.id_evento <> v.id_evento AND o.estado IN ('CONFIRMADO', 'REALIZADO')
-           AND o.hora_inicio < v.hora_fin AND v.hora_inicio < o.hora_fin
-         ORDER BY o.id_evento LIMIT 1) AS apartado_por
-  FROM vw_evento_detalle v"""
+           AND o.hora_inicio < v.hora_fin AND v.hora_inicio < o.hora_fin"""
+# `apartado_propio`: lo apartó otro evento del mismo cliente (no perdió su fecha: ya la tiene).
+COLUMNAS_APARTADO = f"""(SELECT o.clave_proyecto {_APARTA} ORDER BY o.id_evento LIMIT 1) AS apartado_por,
+       EXISTS (SELECT 1 {_APARTA} AND o.id_cliente = v.id_cliente) AS apartado_propio"""
+_SELECT = f"SELECT v.*, {COLUMNAS_APARTADO} FROM vw_evento_detalle v"
 
 
 def _patron_busqueda(texto: str) -> str:

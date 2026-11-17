@@ -18,6 +18,9 @@
   <div><dt>Pagado</dt><dd class="cifra {{ 'cifra--verde' if e.total_pagado > 0 }}">{{ e.total_pagado|moneda }}</dd></div>
   {% if e.saldo > 0 %}
     <div class="datos__total"><dt>{{ 'Te falta pagar' if para_cliente else 'Saldo pendiente' }}</dt><dd class="cifra">{{ e.saldo|moneda }}</dd></div>
+    {# RN-13: para cuándo; el cliente lo necesita tanto como el cuánto #}
+    <div class="datos__limite"><dt>{{ 'Paga antes del' if para_cliente else 'Fecha límite de pago' }}</dt>
+      <dd class="cifra {{ 'cifra--ambar' if hoy is defined and e.fecha_limite_pago < hoy }}">{{ e.fecha_limite_pago|fecha_larga }}</dd></div>
   {% else %}
     <div class="datos__total"><dt>Saldo</dt><dd class="cifra cifra--verde">Liquidado</dd></div>
   {% endif %}

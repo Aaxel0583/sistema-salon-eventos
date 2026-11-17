@@ -133,7 +133,8 @@ _COLUMNAS_ACTIVOS = [
     Columna("Paquete", lambda e: e.nombre_paquete or "Sin paquete"),
     Columna("Aforo", lambda e: e.aforo),
     Columna("Costo", lambda e: e.costo_total, MONEDA),
-    Columna("Saldo", lambda e: e.saldo, MONEDA),
+    # Una cotización no es deuda (DESIGN.md «Dinero por estatus»): sin saldo en pantalla ni en el CSV
+    Columna("Saldo", lambda e: None if e.estado == ESTADO_COTIZACION else e.saldo, MONEDA),
     Columna("Estatus", lambda e: e.estado_legible, ETIQUETA,
             tono=lambda e: _TONO_ESTADO.get(e.estado, "gris"), papel="estado"),
 ]
@@ -241,7 +242,7 @@ class ServicioReportes:
         totales = [
             Total("Eventos realizados", cuentas=len(filas),
                   nota=f"{len(filas) - len(con_saldo)} liquidados · {len(con_saldo)} con saldo"),
-            Total("Costo", _suma(filas, "costo_total")),
+            Total("Costo", _suma(filas, "costo_total"), nota="Precio pactado de los eventos listados"),
             Total("Pagado", _suma(filas, "total_pagado"), tono="verde"),
             Total("Saldo restante", _suma(filas, "saldo"), tono="ambar" if con_saldo else ""),
         ]

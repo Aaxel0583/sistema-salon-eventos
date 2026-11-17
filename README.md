@@ -13,6 +13,49 @@ Aplicación web para cotizar, reservar y cobrar eventos en un salón con tres es
 
 ---
 
+## Inicio rápido
+
+Para descargar el sistema y correrlo en tu computadora. Necesitas Python 3.11, Git y una base PostgreSQL 16 o superior (una cuenta gratuita de [Neon](https://console.neon.tech) o un PostgreSQL local). Las secciones 1 a 8 explican cada paso con detalle.
+
+```bash
+# 1. Descargar el código
+git clone https://github.com/Aaxel0583/sistema-salon-eventos.git
+cd sistema-salon-eventos
+
+# 2. Entorno virtual y dependencias
+python -m venv .venv
+.venv\Scripts\Activate.ps1        # Windows (PowerShell)
+# source .venv/bin/activate       # Linux / macOS
+pip install -r requirements.txt
+
+# 3. Configuración
+copy .env.example .env            # Linux / macOS: cp .env.example .env
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Abre `.env` y llena:
+
+- `SECRET_KEY`: la llave que imprimió el último comando.
+- `DATABASE_URL`: la cadena de conexión de tu base. En Neon usa la cadena **directa** (sin `-pooler`) terminada en `?sslmode=require`.
+- `COOKIE_SEGURA=0`: déjalo así en tu computadora; con `1` y sin HTTPS no podrás iniciar sesión.
+
+```bash
+# 4. Tablas, reglas y datos de ejemplo
+python -m basedatos.instalar
+
+# 5. Primer gerente (imprime una clave temporal que se cambia al entrar)
+python -m administracion.admin crear-gerente --nombre "Tu nombre" --correo gerente@salon.mx
+
+# 6. Ejecutar
+flask --app wsgi run --debug
+```
+
+Abre <http://127.0.0.1:5000> e inicia sesión con el correo y la clave temporal.
+
+`main` tiene la última versión liberada; `develop` tiene lo integrado del sprint en curso.
+
+---
+
 ## 1. Requisitos previos
 
 | Herramienta | Versión | Para qué |
@@ -24,6 +67,8 @@ Aplicación web para cotizar, reservar y cobrar eventos en un salón con tres es
 | psql | opcional | Ejecutar scripts SQL a mano |
 
 ## 2. Repositorio y modelo de ramas (Plan de Proyecto §11)
+
+Así se creó el repositorio y así trabaja el equipo. Si solo quieres descargarlo y correrlo, usa el [Inicio rápido](#inicio-rápido).
 
 ```bash
 git init

@@ -335,3 +335,16 @@ def test_reportes_abre_en_cartera(cliente_http, gerente):
 def test_filtro_sin_resultados_ofrece_quitarlo(cliente_http, gerente):
     texto = cliente_http.get("/reportes/realizados?desde=1990-01-01&hasta=1990-01-02").get_data(as_text=True)
     assert "Ningún registro coincide con los filtros" in texto and "Descargar CSV" not in texto
+
+
+def test_activos_sin_saldo_en_cotizaciones(cliente_http, gerente, crear_usuario):
+    """DESIGN.md «Dinero por estatus»: en Activos una cotización no muestra saldo, ni en pantalla ni en el CSV."""
+    id_cliente, _, _ = crear_usuario("CLIENTE")
+    cotizacion = _evento_a(id_cliente, 3061, estado="COTIZACION", id_salon=2)
+    fila = _fila(cliente_http.get("/reportes/activos").get_data(as_text=True), cotizacion)
+    saldo = fila.split('data-etiqueta="Saldo"')[1].split("</td>")[0]
+    assert "—" in saldo and "$" not in saldo
+    filas = _csv(cliente_http.get("/reportes/activos?formato=csv"))
+    columnas = filas[0]
+    propia = next(f for f in filas[1:] if f[columnas.index("Clave")] == cotizacion.clave_proyecto)
+    assert propia[columnas.index("Saldo")] == ""

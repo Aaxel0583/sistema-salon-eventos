@@ -14,7 +14,7 @@ Sprint 2: Evento (HU-005, HU-006), OcupacionSalon (IB-10) y Pago en modo de
 Sprint 3: el registro de pagos (IB-06, HU-009) completa la clase Pago.
 """
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 # ---------------------------------------------------------------------
@@ -245,6 +245,7 @@ class Evento:
     total_pagado: Decimal = Decimal("0")
     saldo: Decimal = Decimal("0")
     apartado_por: str | None = None       # clave del evento que ya apartó este horario
+    apartado_propio: bool = False         # ... y ese evento es del mismo cliente
 
     @classmethod
     def desde_fila(cls, fila: dict) -> "Evento":
@@ -276,6 +277,11 @@ class Evento:
     @property
     def contacto_cliente(self) -> str:
         return unir_contacto(self.correo_cliente, self.telefono_cliente)
+
+    @property
+    def fecha_limite_pago(self) -> date:
+        """RN-13: el saldo se cobra antes del corte de cartera (21 días antes del evento)."""
+        return self.fecha_evento - timedelta(days=DIAS_CORTE_CARTERA)
 
     @property
     def horario_tomado(self) -> bool:

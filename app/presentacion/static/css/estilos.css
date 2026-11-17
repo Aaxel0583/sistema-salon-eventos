@@ -36,8 +36,42 @@
   --radio-panel: 10px;
   --sombra-1: 0 1px 2px rgba(31, 56, 100, .06), 0 1px 3px rgba(31, 56, 100, .05);
   --sombra-2: 0 4px 12px rgba(31, 56, 100, .12), 0 1px 3px rgba(31, 56, 100, .08);
-  --curva: cubic-bezier(.2, 0, 0, 1);  /* salida rápida, llegada suave */
-  --rapido: 150ms;
+  /* Alias históricos: apuntan a la escala de transitions-dev para que todo use los mismos tiempos */
+  --curva: var(--ease-smooth-out);
+  --rapido: var(--duration-quick);
+  /* ── transitions-dev · tokens de movimiento (escala compartida) ── */
+  --duration-stagger: 40ms;     /* desfase entre tarjetas o renglones */
+  --duration-micro: 80ms;       /* desfase entre bloques de la pantalla */
+  --duration-quick: 150ms;      /* cierre de menú o modal, cambio de texto */
+  --duration-fast: 250ms;       /* apertura de menú o modal, pestañas deslizantes */
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;       /* renglones que aparecen */
+  --duration-very-slow: 500ms;  /* entradas de bloques, medidores, cifras */
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-linear: linear;
+  --distance-micro: 4px;
+  --distance-small: 6px;
+  --distance-base: 8px;
+  --distance-medium: 12px;
+  --distance-large: 30px;
+  --scale-large: 0.96;   /* modal */
+  --scale-medium: 0.97;  /* menú desplegable */
+  --scale-small: 0.98;
+  --scale-tiny: 0.99;
+  --blur-small: 2px;
+  --blur-medium: 3px;
+  /* Texts reveal (entrada escalonada) */
+  --stagger-dur: 500ms;
+  --stagger-distance: 12px;
+  --stagger-stagger: 40ms;
+  --stagger-blur: 3px;
+  --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Tabs sliding */
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-pill-bg: var(--azul);
   --fuente: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -51,13 +85,20 @@ body {
   line-height: 1.5;
   color: var(--tinta);
   background: var(--fondo);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2 { line-height: 1.25; margin: 0 0 .5rem; color: var(--marino); }
+h1, h2 { line-height: 1.25; margin: 0 0 .5rem; color: var(--marino); text-wrap: balance; }
 h1 { font-size: 1.6rem; font-weight: 700; }
 h2 { font-size: 1.1rem; font-weight: 700; }
-p  { margin: 0 0 .75rem; }
-a  { color: var(--azul); }
+p  { margin: 0 0 .75rem; text-wrap: pretty; }
+a  {
+  color: var(--azul); text-decoration-thickness: 1px; text-underline-offset: .22em;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  transition: color var(--duration-quick) var(--ease-smooth-out), text-decoration-color var(--duration-quick) var(--ease-smooth-out);
+}
+a:hover { color: var(--azul-hover); text-decoration-color: currentColor; }
 
 /* Foco con 3:1 o más: azul sobre fondos claros, azul claro sobre la barra marino */
 :focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
@@ -110,7 +151,7 @@ input, textarea { caret-color: var(--azul); }
   box-shadow: var(--sombra-2); padding: .3rem;
   transform-origin: top right;
 }
-.menu-usuario[open] .menu-usuario__lista { animation: desplegar var(--rapido) var(--curva); }
+.menu-usuario[open] .menu-usuario__lista { animation: desplegar var(--duration-fast) var(--ease-smooth-out); }
 .menu-usuario__lista a, .menu-usuario__lista button {
   display: flex; align-items: center; width: 100%; min-height: 44px; text-align: left; padding: 0 .8rem;
   font: inherit; color: var(--tinta); text-decoration: none; background: none; border: 0; cursor: pointer;
@@ -216,7 +257,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
               color var(--rapido) var(--curva), box-shadow var(--rapido) var(--curva), transform 100ms var(--curva);
 }
 .boton:hover { background: var(--azul-seleccion); }
-.boton:active:not(:disabled) { transform: scale(.97); }
+.boton:active:not(:disabled) { transform: scale(.96); }
 .boton--primario { background: var(--azul); color: #fff; box-shadow: var(--sombra-1); }
 .boton--primario:hover { background: var(--azul-hover); box-shadow: var(--sombra-2); }
 .boton--peligro { color: var(--rojo); border-color: var(--rojo-borde); }   /* borde 3.9:1 sobre blanco */
@@ -271,14 +312,26 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 
 /* ----------------------------- IU-03 ------------------------------- */
 /* Resumen compacto: los conteos informan, los pendientes mandan */
-.resumen-panel { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; margin: .25rem 0 0; color: var(--tinta-suave); }
+.resumen-panel { display: flex; flex-wrap: wrap; gap: .25rem 0; margin: .25rem 0 0; color: var(--tinta-suave); }
+/* Cifra en marino y etiqueta en gris: se leen como datos, no como una fila de enlaces.
+   El azul y el subrayado aparecen al pasar el cursor, que es cuando importa que se puede tocar. */
 .resumen-panel a {
-  display: inline-flex; align-items: center; gap: .3rem; min-height: 44px;
-  color: var(--azul); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .2em;
-  transition: text-decoration-color var(--rapido) var(--curva), color var(--rapido) var(--curva);
+  position: relative; display: inline-flex; flex-wrap: wrap; align-content: center; align-items: baseline;
+  gap: .35rem; min-height: 44px; padding: 0 1rem;
+  color: var(--tinta-suave); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: .25em;
+  transition: text-decoration-color var(--duration-quick) var(--ease-smooth-out), color var(--duration-quick) var(--ease-smooth-out);
 }
-.resumen-panel a:hover { text-decoration-color: currentColor; }
-.resumen-panel strong { color: inherit; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.resumen-panel a:first-child { padding-left: 0; }
+.resumen-panel a + a::before {
+  content: ""; position: absolute; left: 0; top: 50%; width: 1px; height: 1.25rem;
+  translate: 0 -50%; background: var(--linea-datos);
+}
+.resumen-panel a:hover { color: var(--azul); text-decoration-color: currentColor; }
+.resumen-panel strong {
+  color: var(--marino); font-size: 1.3rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+  transition: color var(--duration-quick) var(--ease-smooth-out);
+}
+.resumen-panel a:hover strong { color: var(--azul); }
 
 .lista-simple { list-style: none; margin: 0; padding: 0; }
 .lista-simple li {
@@ -453,9 +506,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .evento-cliente {
   position: relative; padding: .9rem 1.25rem; background: var(--panel); border: 1px solid var(--azul-borde);
   border-radius: var(--radio-panel); box-shadow: var(--sombra-1);
-  transition: border-color var(--rapido) var(--curva), box-shadow 200ms var(--curva), transform 200ms var(--curva);
+  transition: border-color var(--rapido) var(--curva), box-shadow var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out);
 }
-.evento-cliente:hover { border-color: var(--azul); box-shadow: var(--sombra-2); transform: translateY(-2px); }
+.evento-cliente:hover { border-color: var(--azul); box-shadow: var(--sombra-2); transform: translateY(-3px); }
 .evento-cliente__titulo::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .evento-cliente__saldo strong { color: var(--marino); }
 .evento-cliente__cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .25rem 1rem; }
@@ -484,8 +537,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 /* Cambio de pantalla: cross-document View Transitions, solo CSS. La barra
    tiene nombre propio y queda fija; solo el contenido se desvanece. */
 @view-transition { navigation: auto; }
-::view-transition-old(root) { animation: 120ms var(--curva) both salir; }
-::view-transition-new(root) { animation: 220ms var(--curva) both entrar; }
+::view-transition-old(root) { animation: var(--duration-quick) var(--ease-smooth-out) both salir; }
+/* La página nueva solo se funde: el desplazamiento lo ponen las entradas escalonadas */
+::view-transition-new(root) { animation: var(--duration-fast) var(--ease-smooth-out) both aparecer; }
 ::view-transition-group(barra) { animation-duration: 0s; }
 
 /* Modal de confirmación: entra y sale con transición (@starting-style +
@@ -494,24 +548,33 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   width: min(420px, calc(100% - 2rem)); padding: 1.25rem 1.25rem .25rem; color: var(--tinta);
   border: 1px solid var(--azul-borde); border-radius: var(--radio-panel);
   box-shadow: 0 12px 32px rgba(31, 56, 100, .25);
-  opacity: 0; transform: translateY(8px) scale(.97);
-  transition: opacity 180ms var(--curva), transform 180ms var(--curva),
-              overlay 180ms allow-discrete, display 180ms allow-discrete;
+  opacity: 0; transform: translateY(var(--distance-base)) scale(var(--scale-large));
+  /* Cierre (estado sin [open]): más rápido y callado que la apertura */
+  transition: opacity var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out),
+              overlay var(--duration-quick) allow-discrete, display var(--duration-quick) allow-discrete;
 }
-.dialogo[open] { opacity: 1; transform: none; }
-@starting-style { .dialogo[open] { opacity: 0; transform: translateY(8px) scale(.97); } }
+.dialogo[open] {
+  opacity: 1; transform: none;
+  transition: opacity var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out),
+              overlay var(--duration-fast) allow-discrete, display var(--duration-fast) allow-discrete;
+}
+@starting-style { .dialogo[open] { opacity: 0; transform: translateY(var(--distance-base)) scale(var(--scale-large)); } }
 .dialogo p { overflow-wrap: anywhere; }
 .dialogo__acciones { justify-content: flex-end; margin: 1.25rem 0 1rem; }
 .dialogo::backdrop {
   background: rgba(16, 28, 52, 0);
-  transition: background-color 180ms var(--curva), overlay 180ms allow-discrete, display 180ms allow-discrete;
+  transition: background-color var(--duration-quick) var(--ease-smooth-out), overlay var(--duration-quick) allow-discrete, display var(--duration-quick) allow-discrete;
 }
-.dialogo[open]::backdrop { background: rgba(16, 28, 52, .45); }
+.dialogo[open]::backdrop {
+  background: rgba(16, 28, 52, .45);
+  transition: background-color var(--duration-fast) var(--ease-smooth-out), overlay var(--duration-fast) allow-discrete, display var(--duration-fast) allow-discrete;
+}
 @starting-style { .dialogo[open]::backdrop { background: rgba(16, 28, 52, 0); } }
 
 @keyframes entrar   { from { opacity: 0; transform: translateY(6px); } }
 @keyframes salir    { to   { opacity: 0; } }
-@keyframes desplegar { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+@keyframes aparecer { from { opacity: 0; } }
+@keyframes desplegar { from { opacity: 0; transform: translateY(calc(-1 * var(--distance-micro))) scale(var(--scale-medium)); } }
 @keyframes marcar   { from { transform: scale(.4); opacity: 0; } }
 
 /* Movimiento reducido (p. ej. Windows con "Efectos de animación" apagado): se quitan
@@ -618,7 +681,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .linea-dia__bloque {
   position: absolute; top: .3rem; bottom: .3rem; min-width: 4px; border-radius: var(--radio-control);
   background: var(--marino); border: 1px solid var(--marino);
-  transition: left 180ms var(--curva), width 180ms var(--curva),
+  transition: left var(--duration-fast) var(--ease-smooth-out), width var(--duration-fast) var(--ease-smooth-out),
               background-color var(--rapido) var(--curva), border-color var(--rapido) var(--curva);
 }
 .linea-dia__bloque--cotiza { top: auto; height: .55rem; background: var(--azul-claro); border: 1px dashed var(--marino); }
@@ -626,13 +689,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 /* El choque se ve aunque caiga sobre un bloque marino: franjas rojas y blancas opacas */
 .linea-dia__bloque--choca {
   background: repeating-linear-gradient(135deg, var(--rojo) 0 5px, var(--fondo) 5px 10px);
-  border-color: var(--rojo); animation: temblar 260ms var(--curva);
+  border-color: var(--rojo); animation: temblar calc(var(--duration-micro) * 4) var(--ease-smooth-out);
 }
 .linea-dia__horas { position: relative; height: 1.2rem; margin-top: .15rem; font-size: .8rem; color: var(--tinta-suave); font-variant-numeric: tabular-nums; }
 .linea-dia__horas span { position: absolute; top: 0; transform: translateX(-50%); }
 .linea-dia__horas span:first-child { transform: none; }
 .linea-dia__horas span:last-child { transform: translateX(-100%); }
-@keyframes temblar { 25% { translate: -3px 0; } 50% { translate: 3px 0; } 75% { translate: -2px 0; } }
+@keyframes temblar { 25% { translate: calc(-1 * var(--distance-base)) 0; } 50% { translate: var(--distance-base) 0; } 75% { translate: calc(-1 * var(--distance-small)) 0; } }
 
 /* ------------- Celular: la cotización es una barra fija abajo ------------- */
 @media (max-width: 899px) {
@@ -713,8 +776,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
   border: 1px solid var(--azul-borde); border-radius: var(--radio-panel);
 }
 .abono__titulo { margin: 0; font-size: 1rem; font-weight: 700; color: var(--marino); }
-.abono__monto { display: flex; gap: .5rem; }
-.abono__monto input { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+.abono__monto { display: flex; flex-wrap: wrap; gap: .5rem; }
+.abono__monto input { flex: 1 1 10rem; min-width: 0; font-variant-numeric: tabular-nums; }
+/* Sin flechas: con ellas (y con la rueda del ratón) el monto cambia sin querer */
+.abono__monto input { -moz-appearance: textfield; appearance: textfield; }
+.abono__monto input::-webkit-inner-spin-button,
+.abono__monto input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .abono__monto .boton { white-space: nowrap; }
 .abono__ayuda { margin: 0; }
 .abono .casilla { margin-top: .5rem; }
@@ -728,18 +795,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 }
 .total {
   display: flex; flex-direction: column; gap: .1rem; padding: .8rem 1rem;
-  background: var(--panel); border: 1px solid var(--azul-borde); border-left-width: 6px;
+  background: var(--panel); border: 1px solid var(--azul-borde); border-left: 6px solid var(--control-borde);
   border-radius: var(--radio-control); box-shadow: var(--sombra-1);
 }
 .total__etiqueta { font-size: .9rem; font-weight: 600; color: var(--tinta-suave); }
 .total__cifra { font-size: 1.4rem; font-weight: 700; line-height: 1.25; color: var(--marino); font-variant-numeric: tabular-nums; }
-.total__nota { font-size: .85rem; color: var(--tinta-suave); }
+.total__nota { font-size: .8rem; color: var(--tinta-suave); }
 /* La banda lateral toma el color del estado solo cuando hay algo que atender */
 .total--roja  { border-left-color: var(--rojo); background: var(--rojo-fondo); }
-.total--roja .total__cifra { color: #990000; }
-.total--ambar { border-left-color: var(--ambar-borde); background: var(--ambar-fondo); }
-.total--ambar .total__cifra { color: #6e5200; }
-.total--verde { border-left-color: var(--verde); }
+.total--roja .total__cifra { color: var(--rojo-hondo); }
+.total--ambar { border-left-color: var(--ambar-texto); background: var(--ambar-fondo); }   /* banda 4.8:1 */
+.total--ambar .total__cifra { color: var(--ambar-hondo); }
 .tabla--reporte td, .tabla--reporte th { padding: .6rem .7rem; }
 .tabla__contacto { overflow-wrap: anywhere; }
 .tabla caption { caption-side: top; }
@@ -757,3 +823,150 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-color
 .tabla--reporte { font-size: .92rem; }
 .tabla--reporte td, .tabla--reporte th { padding: .55rem .55rem; }
 .tabla--reporte tbody th { font-size: .92rem; }
+
+/* Panel en el celular: el bloque de conteos puede encoger (sin esto la página se ensanchaba a 634 px) */
+.encabezado--agenda, .encabezado--agenda > div { min-width: 0; }
+
+/* Abono: el exceso se explica junto al campo */
+.abono__error { margin: 0; color: var(--rojo); font-weight: 600; font-size: .9rem; }
+
+/* Reportes: «Total por cobrar» manda; los totales con filtro son enlaces */
+.total--principal { order: -1; grid-column: 1 / -1; border-left-color: var(--marino); background: var(--fondo); }
+.total--principal .total__cifra { font-size: 1.6rem; }
+.total:has(.total__enlace) { padding: 0; }
+.total__enlace {
+  display: flex; flex-direction: column; gap: .1rem; height: 100%; padding: .8rem 1rem;
+  color: inherit; text-decoration: none; border-radius: inherit;
+  transition: background-color var(--rapido) var(--curva);
+}
+.total__enlace:hover { background: var(--azul-seleccion); }
+/* El total que filtra la tabla se marca con anillo interior (DESIGN.md: selección sin engrosar el borde) */
+/* La banda izquierda conserva su color de estado (rojo, ámbar): solo los otros tres lados se vuelven azules */
+.total:has(.total__enlace[aria-current="true"]) {
+  border-top-color: var(--azul); border-right-color: var(--azul); border-bottom-color: var(--azul);
+  box-shadow: inset 0 0 0 1px var(--azul), var(--sombra-1);
+}
+.total__enlace[aria-current="true"] .total__etiqueta { color: var(--marino); }
+.tabla__nota { display: block; font-weight: 600; font-size: .9rem; white-space: normal; }
+@media (max-width: 640px) {
+  /* Tarjeta de reporte: el saldo es lo segundo que se lee, justo bajo la clave */
+  .tabla--reporte .tabla__destacado { grid-column: 1 / -1; grid-row: 2; color: var(--marino) !important; font-size: 1.1rem !important; font-weight: 700; }
+}
+/* La fecha límite en letra es larga: que baje de renglón en vez de ensanchar la página */
+.datos__limite dd { white-space: normal; text-align: right; }
+/* Totales: en el celular uno por renglón, para que las cifras largas quepan */
+.totales { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+
+
+/* =====================================================================
+   transitions-dev · movimiento visible
+   Entradas escalonadas (Texts reveal), pestañas deslizantes (Tabs sliding),
+   medidores y cifras que cuentan (app.js) y tarjetas que se despegan.
+   `backwards` aplica el estado inicial durante la espera y al terminar no deja
+   transform ni filter puestos, así no altera capas ni posiciones.
+   ===================================================================== */
+@keyframes t-revelar {
+  from { opacity: 0; transform: translateY(var(--stagger-distance)); filter: blur(var(--stagger-blur)); }
+}
+@keyframes t-aparecer { from { opacity: 0; } }
+
+/* Bloques sueltos de la pantalla; las rejillas no se mueven, se mueven sus tarjetas */
+.contenido > :not(.aviso, .pestanas, .prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente),
+:is(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) > :not(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) {
+  animation: t-revelar var(--stagger-dur) var(--stagger-ease) backwards;
+}
+.contenido > :nth-child(2) { animation-delay: calc(var(--duration-micro) * 1); }
+.contenido > :nth-child(3) { animation-delay: calc(var(--duration-micro) * 2); }
+.contenido > :nth-child(n+4) { animation-delay: calc(var(--duration-micro) * 3); }   /* tope: 240 ms */
+/* Tarjetas dentro de una rejilla: llegan una tras otra */
+:is(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) > :nth-child(1) { animation-delay: calc(var(--duration-micro) * 1); }
+:is(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) > :nth-child(2) { animation-delay: calc(var(--duration-micro) * 1 + var(--stagger-stagger) * 1.5); }
+:is(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) > :nth-child(3) { animation-delay: calc(var(--duration-micro) * 1 + var(--stagger-stagger) * 3); }
+:is(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) > :nth-child(4) { animation-delay: calc(var(--duration-micro) * 1 + var(--stagger-stagger) * 4.5); }
+:is(.prioridades, .dos-columnas, .rejilla-salones, .totales, .eventos-cliente) > :nth-child(n+5) { animation-delay: calc(var(--duration-micro) * 1 + var(--stagger-stagger) * 6); }
+
+/* Renglones de tablas y listas: cascada de fundido (sin desplazar dentro del bloque que ya sube) */
+.tabla tbody tr, .lista-simple li {
+  animation: t-aparecer var(--duration-slow) var(--ease-in-out) backwards;
+  animation-delay: calc(var(--duration-micro) * 2 + var(--stagger-stagger) * var(--i, 0));
+}
+:is(.tabla tbody, .lista-simple) > :nth-child(2)  { --i: 1; }
+:is(.tabla tbody, .lista-simple) > :nth-child(3)  { --i: 2; }
+:is(.tabla tbody, .lista-simple) > :nth-child(4)  { --i: 3; }
+:is(.tabla tbody, .lista-simple) > :nth-child(5)  { --i: 4; }
+:is(.tabla tbody, .lista-simple) > :nth-child(6)  { --i: 5; }
+:is(.tabla tbody, .lista-simple) > :nth-child(7)  { --i: 6; }
+:is(.tabla tbody, .lista-simple) > :nth-child(n+8) { --i: 7; }   /* tope: 7 × 40 = 280 ms */
+
+/* Pestañas deslizantes (Tabs sliding): app.js agrega .t-tabs y la barra .t-tabs-pill;
+   sin JS se queda el subrayado de siempre. La barra viaja desde la pestaña anterior. */
+.pestanas.t-tabs { position: relative; }
+.pestanas.t-tabs a[aria-current="page"] { box-shadow: none; }
+.t-tabs-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--tabs-pill-bg);
+  border-radius: 0 0 var(--radio-control) var(--radio-control);
+  transform: translate(0, 0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width     var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Solo lo que se puede tocar se despega al pasar el cursor (DESIGN.md: no subir la sombra
+   de una superficie que no se toca). Los totales de reportes son enlaces a su filtro. */
+.total:has(.total__enlace) {
+  transition:
+    border-color var(--duration-quick) var(--ease-smooth-out),
+    box-shadow   var(--duration-fast)  var(--ease-smooth-out),
+    transform    var(--duration-fast)  var(--ease-smooth-out);
+}
+.total:has(.total__enlace):hover {
+  border-color: var(--azul); box-shadow: var(--sombra-2); transform: translateY(-3px);
+}
+
+/* Movimiento reducido: solo fundidos, sin desplazar, desenfocar ni deslizar */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes t-revelar { from { opacity: 0; } }
+  .t-tabs-pill { transition: none !important; }
+  .total:has(.total__enlace):hover { transform: none; }
+}
+
+/* =====================================================================
+   Enlaces de datos: claves, títulos de evento, contactos y migas.
+   Se leen como datos (marino o tinta) con un subrayado tenue que dice
+   «se puede tocar»; el azul aparece al pasar el cursor o con el foco.
+   El azul pleno queda para botones y para enlaces dentro de un texto.
+   ===================================================================== */
+:is(.tabla__titulo, .semana__datos, .tabla__contacto, .evento-cliente__titulo) a,
+a.evento-cliente__titulo {
+  color: var(--marino); font-weight: 600;
+  text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: .25em;
+  text-decoration-color: var(--azul-borde);
+}
+.semana__datos a, a.evento-cliente__titulo { font-weight: 700; }
+.tabla__contacto a { color: var(--tinta); font-weight: 400; font-variant-numeric: tabular-nums; }
+a.evento-cliente__titulo { text-decoration-color: transparent; }
+:is(.tabla__titulo, .semana__datos, .tabla__contacto) a:hover,
+.tabla tbody tr:hover .tabla__titulo a,
+.evento-cliente:hover a.evento-cliente__titulo {
+  color: var(--azul); text-decoration-color: currentColor;
+}
+/* Miga: «‹ Eventos» discreta en tinta suave; el chevrón se dibuja con CSS (sin caracteres como íconos) */
+.cabecera-evento__miga a {
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 32px;
+  color: var(--tinta-suave); font-weight: 600; text-decoration: none;
+}
+.cabecera-evento__miga a::before {
+  content: ""; width: .45em; height: .45em; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(45deg); transition: translate var(--duration-quick) var(--ease-smooth-out);
+}
+.cabecera-evento__miga a:hover { color: var(--azul); }
+.cabecera-evento__miga a:hover::before { translate: -2px 0; }
+@media (prefers-reduced-motion: reduce) { .cabecera-evento__miga a:hover::before { translate: none; } }

@@ -68,7 +68,7 @@ typography:
     lineHeight: 1.5
   cifra:
     fontFamily: "Segoe UI, system-ui, -apple-system, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "1.1rem"
+    fontSize: "1.3rem"
     fontWeight: 700
     lineHeight: 1.25
     fontFeature: "tnum"
@@ -167,14 +167,14 @@ La densidad es media: paneles con aire, tablas legibles y controles de 44 px que
 - Barra superior marino con el nombre del negocio en mayúsculas.
 - Componentes sobrios y precisos: planos en reposo, respuesta leve al cursor.
 - Pensada desde 360 px; nada provoca desplazamiento horizontal.
-- Movimiento corto (150–220 ms); con "reducir movimiento" se quitan desplazamientos y escalas, pero se quedan los fundidos.
+- Movimiento con dos ritmos: respuestas al cursor cortas (150–250 ms) y entradas visibles al cargar (400–500 ms, escalonadas cada 40–80 ms), con los tokens de transitions-dev (`--duration-*`, `--ease-smooth-out`); con "reducir movimiento" se quitan desplazamientos, escalas y conteos, pero se quedan los fundidos.
 
 ## Colors
 
 Una paleta fría y contenida: marino para la estructura, un azul para actuar y tres colores de estado que solo aparecen cuando dicen algo.
 
 ### Primary
-- **Azul Invitación** (#2b70af): botones principales, enlaces de acción (también los conteos del panel), la barra de la pestaña activa y el contorno de foco. Pasa 4.5:1 sobre los paneles azul hielo. Al pasar el cursor se oscurece a **Azul Invitación Hondo** (#255f95).
+- **Azul Invitación** (#2b70af): botones principales, enlaces de acción dentro de un texto, el hover de los enlaces de datos, la barra de la pestaña activa y el contorno de foco. Pasa 4.5:1 sobre los paneles azul hielo. Al pasar el cursor se oscurece a **Azul Invitación Hondo** (#255f95).
 
 ### Secondary
 - **Marino de Gala** (#1f3864): barra superior, títulos (h1, h2), encabezados de tabla y precios. Da el tono formal del salón.
@@ -216,7 +216,7 @@ Una paleta fría y contenida: marino para la estructura, un azul para actuar y t
 - **Body** (400, 1rem, 1.5): texto general, campos y celdas.
 - **Label** (600, 0.9rem): etiquetas de formulario, encabezados de tabla, notas y texto auxiliar.
 - **Etiqueta** (600, 0.8rem): píldoras de estado.
-- **Cifra** (700, 1.1rem, números tabulares): conteos del panel.
+- **Cifra** (700, 1.3rem, números tabulares, Marino de Gala): conteos del panel; su etiqueta va en tinta suave.
 - **Precio** (700, 1.4rem, números tabulares): precio por persona en las tarjetas de paquete.
 - **Clave** (700, 1.35rem, espaciado 0.12em, números tabulares): la clave generada, agrupada para dictarse.
 
@@ -288,7 +288,7 @@ El motivo visual de "La Agenda del Salón": una hoja de calendario junto al tít
 En la ficha y en el portal, bajo el título va la fecha larga («Domingo 19 de diciembre de 2027 · 14:00 a 19:00 · Salón Terraza»). En el portal, si el evento no está cancelado y no ha pasado, solo para eventos confirmados (una cotización todavía no es una fecha apartada), una píldora Azul Claro con texto marino cuenta los días («Faltan 402 días», «Es mañana», «Es hoy»).
 
 ### Dinero por estatus
-Un solo bloque de cuenta para la ficha y el portal. Una cotización muestra «Total cotizado» y ninguna deuda; un cancelado muestra lo cotizado y lo pagado y aclara que no hay saldo; solo un confirmado o realizado tiene saldo, en marino («Saldo pendiente» para el gerente, «Te falta pagar» para el cliente). Saldo en cero se dice «Liquidado» en verde; «Pagado» va en verde solo si es mayor que cero. El ámbar no se usa para saldos: queda para lo vencido (Sprint 3).
+Un solo bloque de cuenta para la ficha y el portal; en el celular va antes que los datos del evento. Con saldo, dice para cuándo: «Paga antes del…» (cliente) o «Fecha límite de pago» (gerente), 21 días antes del evento (RN-13), en ámbar si ya pasó. Una cotización muestra «Total cotizado» y ninguna deuda; un cancelado muestra lo cotizado y lo pagado y aclara que no hay saldo; solo un confirmado o realizado tiene saldo, en marino («Saldo pendiente» para el gerente, «Te falta pagar» para el cliente). Saldo en cero se dice «Liquidado» en verde; «Pagado» va en verde solo si es mayor que cero. El ámbar no se usa para saldos: queda para lo vencido (Sprint 3).
 
 ### Reservación
 Primero salón, paquete, fecha, horas e invitados; el cliente al final, porque la primera pregunta es si el salón está libre. El botón dice «Guardar cotización» y debajo «La fecha se aparta cuando el cliente da el anticipo» (D-27), también en la barra del celular. El motivo del botón deshabilitado nombra todas las reglas que fallan, no solo la primera. Mientras una regla falla, el total se tacha y el botón se deshabilita con el motivo. Un choque de horario se dice una sola vez, en el aviso rojo, con los huecos libres del día («Libre ese día: 08:00–14:00 y 19:00–24:00»); la agenda queda neutra y solo es ámbar mientras el día tiene eventos y todavía no hay horario que comparar. El total cuenta hacia su nuevo valor en 300ms (instantáneo con movimiento reducido) y solo se anuncia la cifra final.
@@ -297,22 +297,22 @@ Primero salón, paquete, fecha, horas e invitados; el cliente al final, porque l
 Dentro de la agenda del salón, una pista de horas (de las 8:00, o antes si hay eventos más temprano, a las 24:00) con los eventos del día como bloques: marino a todo lo alto si apartan el salón; las cotizaciones en un carril delgado y punteado abajo, que nunca tapa a un evento confirmado. El horario capturado aparece como bloque fantasma azul que se mueve al escribir las horas y se pone a franjas rojas y blancas opacas, con un temblor breve, si se encima con uno que aparta (así se distingue aunque caiga sobre un bloque marino). Es solo visual (aria-hidden): la lista de texto de la agenda dice lo mismo.
 
 ### Cotización con horario perdido
-Si otro evento ya apartó con anticipo el mismo salón y horario, la cotización lo dice en todas partes: en la lista («Horario ya apartado por EVT-…», en Ámbar Hondo), en la ficha (aviso ámbar y sin el botón «Confirmar evento») y en el portal (aviso sin revelar la clave ajena, sin cuenta regresiva). El dato lo calcula el servidor (`apartado_por`).
+Si otro evento ya apartó con anticipo el mismo salón y horario, la cotización lo dice en todas partes: en la lista («Horario ya apartado por EVT-…», en Ámbar Hondo), en la ficha (aviso ámbar y sin el botón «Confirmar evento») y en el portal (aviso sin revelar la clave ajena, sin cuenta regresiva). Si quien apartó el horario es otro evento del mismo cliente, el portal dice «Ya tienes EVT-… confirmado en ese horario», porque no perdió su fecha. El dato lo calcula el servidor (`apartado_por`).
 
 ### Gestión del evento
 Cada estatus permitido es un botón con su propia confirmación; solo «Cancelar evento» va en rojo. El gerente responsable solo se reasigna mientras el evento está abierto.
 
 ### Panel
-Después de **Pendientes** va **Esta semana** (en el celular, antes; los conteos se deslizan en una sola fila): los eventos abiertos de los próximos 7 días, cada uno con su hoja de agenda chica, horario, salón, invitados y estatus. Empieza por **Pendientes** (clientes bloqueados, salones no disponibles), cada uno con su acción. Los conteos van en una sola línea bajo el título, como enlaces discretos. La actividad no muestra inicios de sesión.
+Después de **Pendientes** va **Esta semana** (en el celular, antes; los conteos se deslizan en una sola fila): los eventos abiertos de los próximos 7 días, cada uno con su hoja de agenda chica, horario, salón, invitados y estatus. Empieza por **Pendientes** (clientes bloqueados, salones no disponibles), cada uno con su acción. Los conteos van en una sola línea bajo el título, como enlaces discretos: la cifra en marino y su etiqueta en tinta suave, separados por una línea fina; el azul y el subrayado aparecen solo al pasar el cursor. Al cargar, las cifras cuentan desde cero. La actividad no muestra inicios de sesión.
 
 ### Armador de paquetes
 Resumen vivo arriba de los platillos («2 platillos · $280.00 por persona»), fijo al desplazarse en escritorio. Con más de 8 clientes aparece un buscador que filtra la lista.
 
 ### Reportes
-Pestañas (Cartera, Activos, Realizados) arriba y el título debajo, como en catálogos. Los totales van en tarjetas con una banda lateral de 6px; la banda y el fondo toman el rojo o el ámbar solo cuando hay algo que atender (un total en cero queda neutro). «Descargar CSV» es un botón secundario: el archivo trae las columnas y los filtros de la pantalla. En celular cada renglón es una tarjeta con la clave y su etiqueta arriba.
+Pestañas (Cartera, Activos, Realizados) arriba y el título debajo, como en catálogos. Los totales van en tarjetas con una banda lateral de 6px (Borde de Control, 3:1 o más); la banda y el fondo toman el rojo o el ámbar (Ámbar Texto) solo cuando hay algo que atender. Lo vigente nunca se pinta, ni de verde. «Total por cobrar» va primero, a todo el ancho y con banda marino. En la cartera cada total es un enlace a su filtro de semáforo. En el reporte de Activos una cotización no muestra saldo («—»), ni en pantalla ni en el CSV, y un horario perdido se marca bajo la clave. «Descargar CSV» es un botón secundario: el archivo trae las columnas y los filtros de la pantalla. En celular cada renglón es una tarjeta con la clave y su etiqueta arriba, y el saldo justo debajo, en marino. El contacto se puede tocar (mailto: y tel:).
 
 ### Abono
-En la ficha del evento, a la derecha del historial de pagos. El diálogo de confirmación lleva el monto escrito en el título («¿Registrar abono de $5,000.00 a EVT-2026-0009?») y el verbo en azul, porque registrar un abono no destruye nada; avisa si con ese monto el evento queda finiquitado. El finiquito nunca es un control: es una etiqueta verde que pone el sistema.
+En la ficha del evento, a la derecha del historial de pagos. El diálogo de confirmación lleva el monto escrito en el título («¿Registrar abono de $5,000.00 a EVT-2026-0009?») y el verbo en azul, porque registrar un abono no destruye nada; y el mensaje repite lo que se va a guardar («$5,000.00 · Transferencia · Ref. SPEI 4471») y sus efectos: si marca «Es el anticipo», que el evento pasará a Confirmado; si liquida, que queda finiquitado. El campo no admite más que el saldo (max): un exceso se explica en línea bajo el campo («Excede el saldo por $X»), con aria-invalid, y el diálogo no se abre. Si el servidor rechaza el abono, la ficha vuelve con el foco en el monto. El finiquito nunca es un control: es una etiqueta verde que pone el sistema.
 
 ### Tablas
 Encabezado Azul Claro con texto Marino de Gala; filas Panel Suave separadas por la Línea (#e3e9f2) que se aclaran a blanco al pasar el cursor.
@@ -333,7 +333,9 @@ Diálogo nativo de hasta 420px, con 10px de esquinas y sombra de modal. Entra y 
 - **Do** usar Azul Invitación solo para lo que se puede tocar y Marino de Gala para la estructura y los títulos.
 - **Do** marcar la selección con color o un anillo interior (`inset 0 0 0 1px`), sin cambiar el grosor del borde.
 - **Do** usar números tabulares en cifras, precios y claves.
-- **Do** mantener las transiciones entre 150 y 220ms con `cubic-bezier(.2, 0, 0, 1)` y, con `prefers-reduced-motion`, quitar solo el movimiento (desplazar, escalar, girar) y conservar fundidos y cambios de color.
+- **Do** mostrar los enlaces de datos (claves de evento, títulos de evento, contactos, conteos del panel) en marino o tinta con subrayado tenue en Azul Borde; se vuelven azules al pasar el cursor. La miga va en tinta suave con un chevrón dibujado con CSS. El azul pleno queda para botones y enlaces dentro de un texto, que llevan subrayado fino.
+- **Do** usar los tokens de movimiento de transitions-dev: respuestas al cursor de 150–250ms (`--duration-quick`, `--duration-fast`); entradas al cargar la pantalla de 400–500ms (`--duration-slow`, `--duration-very-slow`) con `--ease-smooth-out`, escalonadas cada 80ms entre bloques (`--duration-micro`) y 40ms entre tarjetas o renglones (`--duration-stagger`); la pestaña activa se marca con una barra que se desliza desde la pestaña anterior; los medidores se llenan desde cero y las cifras de los totales cuentan hasta su valor.
+- **Do** con `prefers-reduced-motion`, quitar solo el movimiento (desplazar, escalar, girar, contar, llenar) y conservar fundidos y cambios de color.
 - **Do** probar cada pantalla a 360px sin desplazamiento horizontal.
 - **Do** dar contexto oculto a las acciones repetidas («Editar<span class="solo-lector"> Crema de elote</span>») y poner los estados en texto, no solo en un símbolo o un color.
 
